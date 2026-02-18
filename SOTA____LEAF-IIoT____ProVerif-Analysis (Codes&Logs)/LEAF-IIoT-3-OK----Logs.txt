@@ -1,0 +1,1076 @@
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/LEAF-IIoT]
+└─# proverif LEAF-IIoT-3.pv 
+Linear part: No equation.
+Convergent part:
+xor(xor(x,y),y) = x
+ae_dec(ae_enc(m,ad_data,sk),ad_data,sk) = m
+unconcat_4_1(concat_4(w,x,y,z)) = w
+unconcat_4_2(concat_4(w,x,y,z)) = x
+unconcat_4_3(concat_4(w,x,y,z)) = y
+unconcat_4_4(concat_4(w,x,y,z)) = z
+Completing equations...
+Completed equations:
+unconcat_4_4(concat_4(w,x,y,z)) = z
+unconcat_4_3(concat_4(w,x,y,z)) = y
+unconcat_4_2(concat_4(w,x,y,z)) = x
+unconcat_4_1(concat_4(w,x,y,z)) = w
+ae_dec(ae_enc(m,ad_data,sk),ad_data,sk) = m
+xor(xor(x,y),y) = x
+Process 0 (that is, the initial process):
+(
+    {1}!
+    {2}let K_u: key = K_User in
+    {3}let PW_u: bitstring = PW_User in
+    {4}let Bio_u: bitstring = Bio_User in
+    {5}new R1: nonce;
+    {6}new T1: timestamp;
+    {7}let RPW: bitstring = h(xor(PW_u,Bio_u)) in
+    {8}let B_k1: bitstring = xor(k2b(K_u),RPW) in
+    {9}let PID_u: bitstring = xor(id2b(id_u),h(concat_4(RPW,n2b(R1),t2b(T1),n2b(R1)))) in
+    {10}let M1_plain: bitstring = concat_4(PID_u,n2b(R1),id2b(id_gw),t2b(T1)) in
+    {11}let A1: bitstring = h(M1_plain) in
+    {12}let M1: bitstring = ae_enc(M1_plain,A1,K_GW) in
+    {13}event UserStarted(id_u);
+    {14}out(public_channel, (M1,A1,T1));
+    {15}in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp));
+    {16}let SK_U: bitstring = h(concat_4(n2b(R1),t2b(T1),t2b(T4_in),A4_in)) in
+    {17}event UserDerivedKey(SK_U);
+    {18}event UserFinished(id_u);
+    {19}out(public_channel, xor(secret_PFS_challenge,SK_U));
+    {20}new PW_new: bitstring;
+    {21}let RPW_new: bitstring = h(xor(PW_new,Bio_u)) in
+    {22}out(public_channel, (id_u,RPW,RPW_new))
+) | (
+    {23}!
+    {24}let K_u_stored: key = K_User in
+    {25}let Ca_stored: bitstring = Ca_User in
+    {26}in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp));
+    {27}let M1_dec: bitstring = ae_dec(M1_in,A1_in,K_GW) in
+    {28}let PID_u_ext: bitstring = unconcat_4_1(M1_dec) in
+    {29}let R1_ext: bitstring = unconcat_4_2(M1_dec) in
+    {30}new R2: nonce;
+    {31}new T2: timestamp;
+    {32}let M2_plain: bitstring = concat_4(PID_u_ext,R1_ext,n2b(R2),t2b(T2)) in
+    {33}let A2: bitstring = h(M2_plain) in
+    {34}let M2: bitstring = ae_enc(M2_plain,A2,K_ISD_GW) in
+    {35}out(public_channel, (M2,A2,T2));
+    {36}in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+    {37}let M3_dec: bitstring = ae_dec(M3_in,A3_in,K_ISD_GW) in
+    {38}let SK_GW: bitstring = h(concat_4(R1_ext,t2b(T1_in),t2b(T3_in),A3_in)) in
+    {39}event GWDerivedKey(SK_GW);
+    {40}event GWFinished(id_gw);
+    {41}let M4_plain: bitstring = concat_4(id2b(id_gw),R1_ext,n2b(R2),t2b(T3_in)) in
+    {42}out(public_channel, (M4_plain,h(M4_plain),T3_in))
+) | (
+    {43}!
+    {44}in(public_channel, (M2_in: bitstring,A2_in: bitstring,T2_in: timestamp));
+    {45}let M2_dec: bitstring = ae_dec(M2_in,A2_in,K_ISD_GW) in
+    {46}new R3: nonce;
+    {47}new T3: timestamp;
+    {48}let M3_plain: bitstring = concat_4(M2_dec,n2b(R3),t2b(T3),k2b(K_ISD_GW)) in
+    {49}let A3: bitstring = h(M3_plain) in
+    {50}let M3: bitstring = ae_enc(M3_plain,A3,K_ISD_GW) in
+    {51}event ISDFinished(id_gw);
+    {52}out(public_channel, (M3,A3,T3))
+) | (
+    {53}let Bio_val: bitstring = Bio_User in
+    {54}out(public_channel, Bio_val)
+) | (
+    {55}phase 2;
+    {56}out(public_channel, K_GW);
+    {57}out(public_channel, K_ISD_GW);
+    {58}out(public_channel, K_User)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+(
+    {1}!
+    {5}new R1: nonce;
+    {6}new T1: timestamp;
+    {13}event UserStarted(id_u);
+    {4}let Bio_u: bitstring = Bio_User in
+    {3}let PW_u: bitstring = PW_User in
+    {7}let RPW: bitstring = h(xor(PW_u,Bio_u)) in
+    {9}let PID_u: bitstring = xor(id2b(id_u),h(concat_4(RPW,n2b(R1),t2b(T1),n2b(R1)))) in
+    {10}let M1_plain: bitstring = concat_4(PID_u,n2b(R1),id2b(id_gw),t2b(T1)) in
+    {11}let A1: bitstring = h(M1_plain) in
+    {12}let M1: bitstring = ae_enc(M1_plain,A1,K_GW) in
+    {14}out(public_channel, (M1,A1,T1));
+    {15}in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp));
+    {16}let SK_U: bitstring = h(concat_4(n2b(R1),t2b(T1),t2b(T4_in),A4_in)) in
+    {17}event UserDerivedKey(SK_U);
+    {18}event UserFinished(id_u);
+    {19}out(public_channel, xor(secret_PFS_challenge,SK_U));
+    {20}new PW_new: bitstring;
+    {21}let RPW_new: bitstring = h(xor(PW_new,Bio_u)) in
+    {22}out(public_channel, (id_u,RPW,RPW_new))
+) | (
+    {23}!
+    {26}in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp));
+    {30}new R2: nonce;
+    {31}new T2: timestamp;
+    {27}let M1_dec: bitstring = ae_dec(M1_in,A1_in,K_GW) in
+    {29}let R1_ext: bitstring = unconcat_4_2(M1_dec) in
+    {28}let PID_u_ext: bitstring = unconcat_4_1(M1_dec) in
+    {32}let M2_plain: bitstring = concat_4(PID_u_ext,R1_ext,n2b(R2),t2b(T2)) in
+    {33}let A2: bitstring = h(M2_plain) in
+    {34}let M2: bitstring = ae_enc(M2_plain,A2,K_ISD_GW) in
+    {35}out(public_channel, (M2,A2,T2));
+    {36}in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+    {38}let SK_GW: bitstring = h(concat_4(R1_ext,t2b(T1_in),t2b(T3_in),A3_in)) in
+    {39}event GWDerivedKey(SK_GW);
+    {40}event GWFinished(id_gw);
+    {41}let M4_plain: bitstring = concat_4(id2b(id_gw),R1_ext,n2b(R2),t2b(T3_in)) in
+    {42}out(public_channel, (M4_plain,h(M4_plain),T3_in))
+) | (
+    {43}!
+    {44}in(public_channel, (M2_in: bitstring,A2_in: bitstring,T2_in: timestamp));
+    {46}new R3: nonce;
+    {47}new T3: timestamp;
+    {51}event ISDFinished(id_gw);
+    {45}let M2_dec: bitstring = ae_dec(M2_in,A2_in,K_ISD_GW) in
+    {48}let M3_plain: bitstring = concat_4(M2_dec,n2b(R3),t2b(T3),k2b(K_ISD_GW)) in
+    {49}let A3: bitstring = h(M3_plain) in
+    {50}let M3: bitstring = ae_enc(M3_plain,A3,K_ISD_GW) in
+    {52}out(public_channel, (M3,A3,T3))
+) | (
+    {53}let Bio_val: bitstring = Bio_User in
+    {54}out(public_channel, Bio_val)
+) | (
+    {55}phase 2;
+    {56}out(public_channel, K_GW);
+    {57}out(public_channel, K_ISD_GW);
+    {58}out(public_channel, K_User)
+)
+
+-- Query inj-event(GWFinished(u)) ==> inj-event(UserStarted(u)) in process 1.
+Translating the process into Horn clauses...
+select attacker(ae_enc(M2_dec_1,ad_data,K_ISD_GW[]))/-5000
+Completing...
+200 rules inserted. Base: 179 rules (93 with conclusion selected). Queue: 54 rules.
+Termination warning: attacker(ae_enc(w,ad_data,K_ISD_GW[])) && attacker(ad_data) -> attacker_p2(w)
+Selecting 0
+Starting query inj-event(GWFinished(u)) ==> inj-event(UserStarted(u))
+goal reachable: attacker(M3_in_1) && attacker(A3_in_1) && attacker(T3_in_1) && attacker(M1_in_1) && attacker(A1_in_1) && attacker(T1_in_1) -> end(@occ40_1,GWFinished(id_gw[]))
+Abbreviations:
+@occ40_1 = @occ40[T3_in = T3_in_1,A3_in = A3_in_1,M3_in = M3_in_1,T1_in = T1_in_1,A1_in = A1_in_1,M1_in = M1_in_1,!1 = @sid]
+
+Derivation:
+Abbreviations:
+@occ40_1 = @occ40[T3_in = T3_in_1,A3_in = A3_in_1,M3_in = M3_in_1,T1_in = T1_in_1,A1_in = A1_in_1,M1_in = M1_in_1,!1 = @sid]
+
+1. We assume as hypothesis that
+attacker(T1_in_1).
+
+2. We assume as hypothesis that
+attacker(A1_in_1).
+
+3. We assume as hypothesis that
+attacker(M1_in_1).
+
+4. By 3, the attacker may know M1_in_1.
+By 2, the attacker may know A1_in_1.
+By 1, the attacker may know T1_in_1.
+Using the function 3-tuple the attacker may obtain (M1_in_1,A1_in_1,T1_in_1).
+attacker((M1_in_1,A1_in_1,T1_in_1)).
+
+5. We assume as hypothesis that
+attacker(T3_in_1).
+
+6. We assume as hypothesis that
+attacker(A3_in_1).
+
+7. We assume as hypothesis that
+attacker(M3_in_1).
+
+8. By 7, the attacker may know M3_in_1.
+By 6, the attacker may know A3_in_1.
+By 5, the attacker may know T3_in_1.
+Using the function 3-tuple the attacker may obtain (M3_in_1,A3_in_1,T3_in_1).
+attacker((M3_in_1,A3_in_1,T3_in_1)).
+
+9. The message (M1_in_1,A1_in_1,T1_in_1) that the attacker may have by 4 may be received at input {26}.
+The message (M3_in_1,A3_in_1,T3_in_1) that the attacker may have by 8 may be received at input {36}.
+So event GWFinished(id_gw[]) may be executed at {40} in session @sid.
+end(@occ40_1,GWFinished(id_gw[])).
+
+10. By 9, end(@occ40_1,GWFinished(id_gw[])).
+The goal is reached, represented in the following fact:
+end(@occ40_1,GWFinished(id_gw[])).
+
+
+Initial state
+
+Additional knowledge of the attacker:
+Ca_User
+id_gw
+id_u
+public_channel
+a
+a_1
+a_2
+a_3
+a_4
+a_5
+--------------------------------------------------------------
+New processes:
+    (
+        !
+        new R1: nonce;
+        new T1: timestamp;
+        event UserStarted(id_u);
+        let Bio_u: bitstring = Bio_User in
+        let PW_u: bitstring = PW_User in
+        let RPW: bitstring = h(xor(PW_u,Bio_u)) in
+        let PID_u: bitstring = xor(id2b(id_u),h(concat_4(RPW,n2b(R1),t2b(T1),n2b(R1)))) in
+        let M1_plain: bitstring = concat_4(PID_u,n2b(R1),id2b(id_gw),t2b(T1)) in
+        let A1: bitstring = h(M1_plain) in
+        let M1: bitstring = ae_enc(M1_plain,A1,K_GW) in
+        out(public_channel, (M1,A1,T1));
+        in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp));
+        let SK_U: bitstring = h(concat_4(n2b(R1),t2b(T1),t2b(T4_in),A4_in)) in
+        event UserDerivedKey(SK_U);
+        event UserFinished(id_u);
+        out(public_channel, xor(secret_PFS_challenge,SK_U));
+        new PW_new: bitstring;
+        let RPW_new: bitstring = h(xor(PW_new,Bio_u)) in
+        out(public_channel, (id_u,RPW,RPW_new))
+    ) | (
+        !
+        in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp));
+        new R2: nonce;
+        new T2: timestamp;
+        let M1_dec: bitstring = ae_dec(M1_in,A1_in,K_GW) in
+        let R1_ext: bitstring = unconcat_4_2(M1_dec) in
+        let PID_u_ext: bitstring = unconcat_4_1(M1_dec) in
+        let M2_plain: bitstring = concat_4(PID_u_ext,R1_ext,n2b(R2),t2b(T2)) in
+        let A2: bitstring = h(M2_plain) in
+        let M2: bitstring = ae_enc(M2_plain,A2,K_ISD_GW) in
+        out(public_channel, (M2,A2,T2));
+        in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+        let SK_GW: bitstring = h(concat_4(R1_ext,t2b(T1_in),t2b(T3_in),A3_in)) in
+        event GWDerivedKey(SK_GW);
+        event GWFinished(id_gw);
+        let M4_plain: bitstring = concat_4(id2b(id_gw),R1_ext,n2b(R2),t2b(T3_in)) in
+        out(public_channel, (M4_plain,h(M4_plain),T3_in))
+    ) | (
+        !
+        in(public_channel, (M2_in: bitstring,A2_in: bitstring,T2_in: timestamp));
+        new R3: nonce;
+        new T3: timestamp;
+        event ISDFinished(id_gw);
+        let M2_dec: bitstring = ae_dec(M2_in,A2_in,K_ISD_GW) in
+        let M3_plain: bitstring = concat_4(M2_dec,n2b(R3),t2b(T3),k2b(K_ISD_GW)) in
+        let A3: bitstring = h(M3_plain) in
+        let M3: bitstring = ae_enc(M3_plain,A3,K_ISD_GW) in
+        out(public_channel, (M3,A3,T3))
+    ) | (
+        let Bio_val: bitstring = Bio_User in
+        out(public_channel, Bio_val)
+    ) | (
+        phase 2;
+        out(public_channel, K_GW);
+        out(public_channel, K_ISD_GW);
+        out(public_channel, K_User)
+    )
+
+--------------------------------------------------------------
+1st process: Reduction |
+
+1st process: Reduction |
+
+2nd process: Reduction |
+
+3rd process: Reduction |
+
+4th process: Beginning of process ProcessLeaks
+
+4th process: let Bio_val: bitstring = Bio_User succeeds
+
+4th process: out(public_channel, ~M) with ~M = Bio_User done
+
+Additional knowledge of the attacker:
+~M = Bio_User
+--------------------------------------------------------------
+4th process: Reduction 0
+
+3rd process: Reduction ! 0 copy(ies)
+
+2nd process: Reduction ! 1 copy(ies)
+
+2nd process: Beginning of process ProcessGateway
+
+1st process: Reduction ! 0 copy(ies)
+
+New processes:
+(
+    in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp));
+    new R2: nonce;
+    new T2: timestamp;
+    let M1_dec: bitstring = ae_dec(M1_in,A1_in,K_GW) in
+    let R1_ext: bitstring = unconcat_4_2(M1_dec) in
+    let PID_u_ext: bitstring = unconcat_4_1(M1_dec) in
+    let M2_plain: bitstring = concat_4(PID_u_ext,R1_ext,n2b(R2),t2b(T2)) in
+    let A2: bitstring = h(M2_plain) in
+    let M2: bitstring = ae_enc(M2_plain,A2,K_ISD_GW) in
+    out(public_channel, (M2,A2,T2));
+    in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+    let SK_GW: bitstring = h(concat_4(R1_ext,t2b(T1_in),t2b(T3_in),A3_in)) in
+    event GWDerivedKey(SK_GW);
+    event GWFinished(id_gw);
+    let M4_plain: bitstring = concat_4(id2b(id_gw),R1_ext,n2b(R2),t2b(T3_in)) in
+    out(public_channel, (M4_plain,h(M4_plain),T3_in))
+) | (
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+)
+
+--------------------------------------------------------------
+1st process: in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp)) done with message (a_2,a_1,a)
+
+1st process: new R2: nonce creating R2_1
+
+1st process: new T2: timestamp creating T2_1
+
+1st process: let M1_dec: bitstring = ae_dec(a_2,a_1,K_GW) succeeds
+
+1st process: let R1_ext: bitstring = unconcat_4_2(ae_dec(a_2,a_1,K_GW)) succeeds
+
+1st process: let PID_u_ext: bitstring = unconcat_4_1(ae_dec(a_2,a_1,K_GW)) succeeds
+
+1st process: let M2_plain: bitstring = concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1)) succeeds
+
+1st process: let A2: bitstring = h(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1))) succeeds
+
+1st process: let M2: bitstring = ae_enc(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1)),h(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1))),K_ISD_GW) succeeds
+
+1st process: out(public_channel, (~M_1,~M_2,~M_3)) with ~M_1 = ae_enc(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1)),h(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1))),K_ISD_GW), ~M_2 = h(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1))), ~M_3 = T2_1 done
+
+Additional knowledge of the attacker:
+~M_3 = T2_1
+~M_2 = h(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1)))
+~M_1 = ae_enc(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1)),h(concat_4(unconcat_4_1(ae_dec(a_2,a_1,K_GW)),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T2_1))),K_ISD_GW)
+--------------------------------------------------------------
+New processes:
+(
+    in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+    let SK_GW: bitstring = h(concat_4(unconcat_4_2(ae_dec(a_2,a_1,K_GW)),t2b(a),t2b(T3_in),A3_in)) in
+    event GWDerivedKey(SK_GW);
+    event GWFinished(id_gw);
+    let M4_plain: bitstring = concat_4(id2b(id_gw),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(T3_in)) in
+    out(public_channel, (M4_plain,h(M4_plain),T3_in))
+) | (
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+)
+
+--------------------------------------------------------------
+1st process: in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp)) done with message (a_5,a_4,a_3)
+
+1st process: let SK_GW: bitstring = h(concat_4(unconcat_4_2(ae_dec(a_2,a_1,K_GW)),t2b(a),t2b(a_3),a_4)) succeeds
+
+1st process: event GWDerivedKey(h(concat_4(unconcat_4_2(ae_dec(a_2,a_1,K_GW)),t2b(a),t2b(a_3),a_4))) executed
+
+1st process: event GWFinished(id_gw) executed; it is a goal
+
+New processes:
+(
+    let M4_plain: bitstring = concat_4(id2b(id_gw),unconcat_4_2(ae_dec(a_2,a_1,K_GW)),n2b(R2_1),t2b(a_3)) in
+    out(public_channel, (M4_plain,h(M4_plain),a_3))
+) | (
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+)
+
+--------------------------------------------------------------
+The event GWFinished(id_gw) is executed at {40} in copy a_6.
+A trace has been found.
+RESULT inj-event(GWFinished(u)) ==> inj-event(UserStarted(u)) is false.
+RESULT (even event(GWFinished(u)) ==> event(UserStarted(u)) is false.)
+-- Query event(UserDerivedKey(k)) ==> event(GWDerivedKey(k)) in process 1.
+Translating the process into Horn clauses...
+select attacker(ae_enc(M2_dec_1,ad_data,K_ISD_GW[]))/-5000
+Completing...
+200 rules inserted. Base: 179 rules (93 with conclusion selected). Queue: 55 rules.
+Termination warning: attacker(ae_enc(w,ad_data,K_ISD_GW[])) && attacker(ad_data) -> attacker_p2(w)
+Selecting 0
+400 rules inserted. Base: 293 rules (125 with conclusion selected). Queue: 19 rules.
+Starting query event(UserDerivedKey(k)) ==> event(GWDerivedKey(k))
+goal reachable: attacker(A4_in_1) && attacker(T4_in_1) -> end(UserDerivedKey(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1))))
+Abbreviations:
+R1_1 = R1[!1 = @sid]
+T1_1 = T1[!1 = @sid]
+
+Derivation:
+Abbreviations:
+R1_1 = R1[!1 = @sid]
+T1_1 = T1[!1 = @sid]
+
+1. We assume as hypothesis that
+attacker(T4_in_1).
+
+2. We assume as hypothesis that
+attacker(A4_in_1).
+
+3. The attacker has some term M4_in_1.
+attacker(M4_in_1).
+
+4. By 3, the attacker may know M4_in_1.
+By 2, the attacker may know A4_in_1.
+By 1, the attacker may know T4_in_1.
+Using the function 3-tuple the attacker may obtain (M4_in_1,A4_in_1,T4_in_1).
+attacker((M4_in_1,A4_in_1,T4_in_1)).
+
+5. The message (M4_in_1,A4_in_1,T4_in_1) that the attacker may have by 4 may be received at input {15}.
+So event UserDerivedKey(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1))) may be executed at {17}.
+end(UserDerivedKey(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1)))).
+
+6. By 5, end(UserDerivedKey(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1)))).
+The goal is reached, represented in the following fact:
+end(UserDerivedKey(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1)))).
+
+
+Initial state
+
+Additional knowledge of the attacker:
+Ca_User
+id_gw
+id_u
+public_channel
+a
+a_1
+a_2
+--------------------------------------------------------------
+New processes:
+    (
+        !
+        new R1: nonce;
+        new T1: timestamp;
+        event UserStarted(id_u);
+        let Bio_u: bitstring = Bio_User in
+        let PW_u: bitstring = PW_User in
+        let RPW: bitstring = h(xor(PW_u,Bio_u)) in
+        let PID_u: bitstring = xor(id2b(id_u),h(concat_4(RPW,n2b(R1),t2b(T1),n2b(R1)))) in
+        let M1_plain: bitstring = concat_4(PID_u,n2b(R1),id2b(id_gw),t2b(T1)) in
+        let A1: bitstring = h(M1_plain) in
+        let M1: bitstring = ae_enc(M1_plain,A1,K_GW) in
+        out(public_channel, (M1,A1,T1));
+        in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp));
+        let SK_U: bitstring = h(concat_4(n2b(R1),t2b(T1),t2b(T4_in),A4_in)) in
+        event UserDerivedKey(SK_U);
+        event UserFinished(id_u);
+        out(public_channel, xor(secret_PFS_challenge,SK_U));
+        new PW_new: bitstring;
+        let RPW_new: bitstring = h(xor(PW_new,Bio_u)) in
+        out(public_channel, (id_u,RPW,RPW_new))
+    ) | (
+        !
+        in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp));
+        new R2: nonce;
+        new T2: timestamp;
+        let M1_dec: bitstring = ae_dec(M1_in,A1_in,K_GW) in
+        let R1_ext: bitstring = unconcat_4_2(M1_dec) in
+        let PID_u_ext: bitstring = unconcat_4_1(M1_dec) in
+        let M2_plain: bitstring = concat_4(PID_u_ext,R1_ext,n2b(R2),t2b(T2)) in
+        let A2: bitstring = h(M2_plain) in
+        let M2: bitstring = ae_enc(M2_plain,A2,K_ISD_GW) in
+        out(public_channel, (M2,A2,T2));
+        in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+        let SK_GW: bitstring = h(concat_4(R1_ext,t2b(T1_in),t2b(T3_in),A3_in)) in
+        event GWDerivedKey(SK_GW);
+        event GWFinished(id_gw);
+        let M4_plain: bitstring = concat_4(id2b(id_gw),R1_ext,n2b(R2),t2b(T3_in)) in
+        out(public_channel, (M4_plain,h(M4_plain),T3_in))
+    ) | (
+        !
+        in(public_channel, (M2_in: bitstring,A2_in: bitstring,T2_in: timestamp));
+        new R3: nonce;
+        new T3: timestamp;
+        event ISDFinished(id_gw);
+        let M2_dec: bitstring = ae_dec(M2_in,A2_in,K_ISD_GW) in
+        let M3_plain: bitstring = concat_4(M2_dec,n2b(R3),t2b(T3),k2b(K_ISD_GW)) in
+        let A3: bitstring = h(M3_plain) in
+        let M3: bitstring = ae_enc(M3_plain,A3,K_ISD_GW) in
+        out(public_channel, (M3,A3,T3))
+    ) | (
+        let Bio_val: bitstring = Bio_User in
+        out(public_channel, Bio_val)
+    ) | (
+        phase 2;
+        out(public_channel, K_GW);
+        out(public_channel, K_ISD_GW);
+        out(public_channel, K_User)
+    )
+
+--------------------------------------------------------------
+1st process: Reduction |
+
+1st process: Reduction |
+
+2nd process: Reduction |
+
+3rd process: Reduction |
+
+4th process: Beginning of process ProcessLeaks
+
+4th process: let Bio_val: bitstring = Bio_User succeeds
+
+4th process: out(public_channel, ~M) with ~M = Bio_User done
+
+Additional knowledge of the attacker:
+~M = Bio_User
+--------------------------------------------------------------
+4th process: Reduction 0
+
+3rd process: Reduction ! 0 copy(ies)
+
+2nd process: Reduction ! 0 copy(ies)
+
+1st process: Reduction ! 1 copy(ies)
+
+1st process: Beginning of process ProcessUser
+
+1st process: new R1: nonce creating R1_1
+
+1st process: new T1: timestamp creating T1_1
+
+1st process: event UserStarted(id_u) executed
+
+1st process: let Bio_u: bitstring = Bio_User succeeds
+
+1st process: let PW_u: bitstring = PW_User succeeds
+
+1st process: let RPW: bitstring = h(xor(PW_User,Bio_User)) succeeds
+
+1st process: let PID_u: bitstring = xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))) succeeds
+
+1st process: let M1_plain: bitstring = concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)) succeeds
+
+1st process: let A1: bitstring = h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))) succeeds
+
+1st process: let M1: bitstring = ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW) succeeds
+
+1st process: out(public_channel, (~M_1,~M_2,~M_3)) with ~M_1 = ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW), ~M_2 = h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))), ~M_3 = T1_1 done
+
+Additional knowledge of the attacker:
+~M_3 = T1_1
+~M_2 = h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)))
+~M_1 = ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)
+--------------------------------------------------------------
+New processes:
+(
+    in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp));
+    let SK_U: bitstring = h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in),A4_in)) in
+    event UserDerivedKey(SK_U);
+    event UserFinished(id_u);
+    out(public_channel, xor(secret_PFS_challenge,SK_U));
+    new PW_new: bitstring;
+    let RPW_new: bitstring = h(xor(PW_new,Bio_User)) in
+    out(public_channel, (id_u,h(xor(PW_User,Bio_User)),RPW_new))
+) | (
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+)
+
+--------------------------------------------------------------
+1st process: in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp)) done with message (a_2,a_1,a)
+
+1st process: let SK_U: bitstring = h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a),a_1)) succeeds
+
+1st process: event UserDerivedKey(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a),a_1))) executed; it is a goal
+
+New processes:
+(
+    event UserFinished(id_u);
+    out(public_channel, xor(secret_PFS_challenge,h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a),a_1))));
+    new PW_new: bitstring;
+    let RPW_new: bitstring = h(xor(PW_new,Bio_User)) in
+    out(public_channel, (id_u,h(xor(PW_User,Bio_User)),RPW_new))
+) | (
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+)
+
+--------------------------------------------------------------
+The event UserDerivedKey(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a),a_1))) is executed at {17} in copy a_3.
+A trace has been found.
+RESULT event(UserDerivedKey(k)) ==> event(GWDerivedKey(k)) is false.
+-- Query not attacker_p2(secret_PFS_challenge[]) in process 1.
+Translating the process into Horn clauses...
+select attacker(ae_enc(M2_dec_1,ad_data,K_ISD_GW[]))/-5000
+Completing...
+200 rules inserted. Base: 179 rules (92 with conclusion selected). Queue: 53 rules.
+Termination warning: attacker(ae_enc(w,ad_data,K_ISD_GW[])) && attacker(ad_data) -> attacker_p2(w)
+Selecting 0
+Starting query not attacker_p2(secret_PFS_challenge[])
+goal reachable: attacker_p2(secret_PFS_challenge[])
+
+Derivation:
+Abbreviations:
+R1_1 = R1[!1 = @sid]
+T1_1 = T1[!1 = @sid]
+R2_1 = R2[T1_in = T1_in_1,A1_in = h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),M1_in = ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),!1 = @sid_1]
+
+1. The attacker has some term z.
+attacker(z).
+
+2. The attacker has some term y.
+attacker(y).
+
+3. The attacker has some term x.
+attacker(x).
+
+4. The attacker has some term A4_in_1.
+attacker(A4_in_1).
+
+5. The attacker has some term T4_in_1.
+attacker(T4_in_1).
+
+6. By 5, the attacker may know T4_in_1.
+Using the function t2b the attacker may obtain t2b(T4_in_1).
+attacker(t2b(T4_in_1)).
+
+7. The message (ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),T1_1) may be sent to the attacker at output {14}.
+attacker((ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),T1_1)).
+
+8. By 7, the attacker may know (ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),T1_1).
+Using the function 3-proj-3-tuple the attacker may obtain T1_1.
+attacker(T1_1).
+
+9. By 8, the attacker may know T1_1.
+Using the function t2b the attacker may obtain t2b(T1_1).
+attacker(t2b(T1_1)).
+
+10. The attacker has some term T1_in_1.
+attacker(T1_in_1).
+
+11. By 7, the attacker may know (ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),T1_1).
+Using the function 2-proj-3-tuple the attacker may obtain h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))).
+attacker(h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)))).
+
+12. By 7, the attacker may know (ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),T1_1).
+Using the function 1-proj-3-tuple the attacker may obtain ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]).
+attacker(ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[])).
+
+13. By 12, the attacker may know ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]).
+By 11, the attacker may know h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))).
+By 10, the attacker may know T1_in_1.
+Using the function 3-tuple the attacker may obtain (ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),T1_in_1).
+attacker((ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),T1_in_1)).
+
+14. The attacker has some term T3_in_1.
+attacker(T3_in_1).
+
+15. The attacker has some term A3_in_1.
+attacker(A3_in_1).
+
+16. The attacker has some term M3_in_1.
+attacker(M3_in_1).
+
+17. By 16, the attacker may know M3_in_1.
+By 15, the attacker may know A3_in_1.
+By 14, the attacker may know T3_in_1.
+Using the function 3-tuple the attacker may obtain (M3_in_1,A3_in_1,T3_in_1).
+attacker((M3_in_1,A3_in_1,T3_in_1)).
+
+18. The message (ae_enc(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1)),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),K_GW[]),h(concat_4(xor(id2b(id_u[]),h(concat_4(h(xor(PW_User[],Bio_User[])),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw[]),t2b(T1_1))),T1_in_1) that the attacker may have by 13 may be received at input {26}.
+The message (M3_in_1,A3_in_1,T3_in_1) that the attacker may have by 17 may be received at input {36}.
+So the message (concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1)),h(concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1))),T3_in_1) may be sent to the attacker at output {42}.
+attacker((concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1)),h(concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1))),T3_in_1)).
+
+19. By 18, the attacker may know (concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1)),h(concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1))),T3_in_1).
+Using the function 1-proj-3-tuple the attacker may obtain concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1)).
+attacker(concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1))).
+
+20. By 19, the attacker may know concat_4(id2b(id_gw[]),n2b(R1_1),n2b(R2_1),t2b(T3_in_1)).
+Using the function unconcat_4_2 the attacker may obtain n2b(R1_1).
+attacker(n2b(R1_1)).
+
+21. By 20, the attacker may know n2b(R1_1).
+By 9, the attacker may know t2b(T1_1).
+By 6, the attacker may know t2b(T4_in_1).
+By 4, the attacker may know A4_in_1.
+Using the function concat_4 the attacker may obtain concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1).
+attacker(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1)).
+
+22. By 21, the attacker may know concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1).
+Using the function h the attacker may obtain h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1)).
+attacker(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1))).
+
+23. The attacker has some term M4_in_1.
+attacker(M4_in_1).
+
+24. By 23, the attacker may know M4_in_1.
+By 4, the attacker may know A4_in_1.
+By 5, the attacker may know T4_in_1.
+Using the function 3-tuple the attacker may obtain (M4_in_1,A4_in_1,T4_in_1).
+attacker((M4_in_1,A4_in_1,T4_in_1)).
+
+25. The message (M4_in_1,A4_in_1,T4_in_1) that the attacker may have by 24 may be received at input {15}.
+So the message xor(secret_PFS_challenge[],h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1))) may be sent to the attacker at output {19}.
+attacker(xor(secret_PFS_challenge[],h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1)))).
+
+26. By 25, the attacker may know xor(secret_PFS_challenge[],h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1))).
+By 22, the attacker may know h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in_1),A4_in_1)).
+Using the function xor the attacker may obtain secret_PFS_challenge[].
+attacker(secret_PFS_challenge[]).
+
+27. By 26, the attacker may know secret_PFS_challenge[].
+By 3, the attacker may know x.
+By 2, the attacker may know y.
+By 1, the attacker may know z.
+Using the function concat_4 the attacker may obtain concat_4(secret_PFS_challenge[],x,y,z).
+attacker(concat_4(secret_PFS_challenge[],x,y,z)).
+
+28. By 27, the attacker may know concat_4(secret_PFS_challenge[],x,y,z).
+So the attacker may know concat_4(secret_PFS_challenge[],x,y,z) in phase 1.
+attacker_p1(concat_4(secret_PFS_challenge[],x,y,z)).
+
+29. By 28, the attacker may know concat_4(secret_PFS_challenge[],x,y,z) in phase 1.
+So the attacker may know concat_4(secret_PFS_challenge[],x,y,z) in phase 2.
+attacker_p2(concat_4(secret_PFS_challenge[],x,y,z)).
+
+30. By 29, the attacker may know concat_4(secret_PFS_challenge[],x,y,z) in phase 2.
+Using the function unconcat_4_1 the attacker may obtain secret_PFS_challenge[] in phase 2.
+attacker_p2(secret_PFS_challenge[]).
+
+31. By 30, attacker_p2(secret_PFS_challenge[]).
+The goal is reached, represented in the following fact:
+attacker_p2(secret_PFS_challenge[]).
+
+
+Initial state
+
+Additional knowledge of the attacker:
+Ca_User
+id_gw
+id_u
+public_channel
+a
+a_1
+a_2
+a_3
+t2b(a_4)
+a_4
+a_5
+a_6
+a_7
+a_8
+a_9
+--------------------------------------------------------------
+New processes:
+    (
+        !
+        new R1: nonce;
+        new T1: timestamp;
+        event UserStarted(id_u);
+        let Bio_u: bitstring = Bio_User in
+        let PW_u: bitstring = PW_User in
+        let RPW: bitstring = h(xor(PW_u,Bio_u)) in
+        let PID_u: bitstring = xor(id2b(id_u),h(concat_4(RPW,n2b(R1),t2b(T1),n2b(R1)))) in
+        let M1_plain: bitstring = concat_4(PID_u,n2b(R1),id2b(id_gw),t2b(T1)) in
+        let A1: bitstring = h(M1_plain) in
+        let M1: bitstring = ae_enc(M1_plain,A1,K_GW) in
+        out(public_channel, (M1,A1,T1));
+        in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp));
+        let SK_U: bitstring = h(concat_4(n2b(R1),t2b(T1),t2b(T4_in),A4_in)) in
+        event UserDerivedKey(SK_U);
+        event UserFinished(id_u);
+        out(public_channel, xor(secret_PFS_challenge,SK_U));
+        new PW_new: bitstring;
+        let RPW_new: bitstring = h(xor(PW_new,Bio_u)) in
+        out(public_channel, (id_u,RPW,RPW_new))
+    ) | (
+        !
+        in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp));
+        new R2: nonce;
+        new T2: timestamp;
+        let M1_dec: bitstring = ae_dec(M1_in,A1_in,K_GW) in
+        let R1_ext: bitstring = unconcat_4_2(M1_dec) in
+        let PID_u_ext: bitstring = unconcat_4_1(M1_dec) in
+        let M2_plain: bitstring = concat_4(PID_u_ext,R1_ext,n2b(R2),t2b(T2)) in
+        let A2: bitstring = h(M2_plain) in
+        let M2: bitstring = ae_enc(M2_plain,A2,K_ISD_GW) in
+        out(public_channel, (M2,A2,T2));
+        in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+        let SK_GW: bitstring = h(concat_4(R1_ext,t2b(T1_in),t2b(T3_in),A3_in)) in
+        event GWDerivedKey(SK_GW);
+        event GWFinished(id_gw);
+        let M4_plain: bitstring = concat_4(id2b(id_gw),R1_ext,n2b(R2),t2b(T3_in)) in
+        out(public_channel, (M4_plain,h(M4_plain),T3_in))
+    ) | (
+        !
+        in(public_channel, (M2_in: bitstring,A2_in: bitstring,T2_in: timestamp));
+        new R3: nonce;
+        new T3: timestamp;
+        event ISDFinished(id_gw);
+        let M2_dec: bitstring = ae_dec(M2_in,A2_in,K_ISD_GW) in
+        let M3_plain: bitstring = concat_4(M2_dec,n2b(R3),t2b(T3),k2b(K_ISD_GW)) in
+        let A3: bitstring = h(M3_plain) in
+        let M3: bitstring = ae_enc(M3_plain,A3,K_ISD_GW) in
+        out(public_channel, (M3,A3,T3))
+    ) | (
+        let Bio_val: bitstring = Bio_User in
+        out(public_channel, Bio_val)
+    ) | (
+        phase 2;
+        out(public_channel, K_GW);
+        out(public_channel, K_ISD_GW);
+        out(public_channel, K_User)
+    )
+
+--------------------------------------------------------------
+1st process: Reduction |
+
+1st process: Reduction |
+
+2nd process: Reduction |
+
+3rd process: Reduction |
+
+4th process: Beginning of process ProcessLeaks
+
+4th process: let Bio_val: bitstring = Bio_User succeeds
+
+4th process: out(public_channel, ~M) with ~M = Bio_User done
+
+Additional knowledge of the attacker:
+~M = Bio_User
+--------------------------------------------------------------
+4th process: Reduction 0
+
+3rd process: Reduction ! 0 copy(ies)
+
+2nd process: Reduction ! 1 copy(ies)
+
+2nd process: Beginning of process ProcessGateway
+
+1st process: Reduction ! 1 copy(ies)
+
+1st process: Beginning of process ProcessUser
+
+1st process: new R1: nonce creating R1_1
+
+1st process: new T1: timestamp creating T1_1
+
+1st process: event UserStarted(id_u) executed
+
+1st process: let Bio_u: bitstring = Bio_User succeeds
+
+1st process: let PW_u: bitstring = PW_User succeeds
+
+1st process: let RPW: bitstring = h(xor(PW_User,Bio_User)) succeeds
+
+1st process: let PID_u: bitstring = xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))) succeeds
+
+1st process: let M1_plain: bitstring = concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)) succeeds
+
+1st process: let A1: bitstring = h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))) succeeds
+
+1st process: let M1: bitstring = ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW) succeeds
+
+1st process: out(public_channel, (~M_1,~M_2,~M_3)) with ~M_1 = ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW), ~M_2 = h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))), ~M_3 = T1_1 done
+
+Additional knowledge of the attacker:
+t2b(~M_3) = t2b(T1_1)
+~M_3 = T1_1
+~M_2 = h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)))
+~M_1 = ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)
+--------------------------------------------------------------
+New processes:
+(
+    in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp));
+    let SK_U: bitstring = h(concat_4(n2b(R1_1),t2b(T1_1),t2b(T4_in),A4_in)) in
+    event UserDerivedKey(SK_U);
+    event UserFinished(id_u);
+    out(public_channel, xor(secret_PFS_challenge,SK_U));
+    new PW_new: bitstring;
+    let RPW_new: bitstring = h(xor(PW_new,Bio_User)) in
+    out(public_channel, (id_u,h(xor(PW_User,Bio_User)),RPW_new))
+) | (
+    in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp));
+    new R2: nonce;
+    new T2: timestamp;
+    let M1_dec: bitstring = ae_dec(M1_in,A1_in,K_GW) in
+    let R1_ext: bitstring = unconcat_4_2(M1_dec) in
+    let PID_u_ext: bitstring = unconcat_4_1(M1_dec) in
+    let M2_plain: bitstring = concat_4(PID_u_ext,R1_ext,n2b(R2),t2b(T2)) in
+    let A2: bitstring = h(M2_plain) in
+    let M2: bitstring = ae_enc(M2_plain,A2,K_ISD_GW) in
+    out(public_channel, (M2,A2,T2));
+    in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+    let SK_GW: bitstring = h(concat_4(R1_ext,t2b(T1_in),t2b(T3_in),A3_in)) in
+    event GWDerivedKey(SK_GW);
+    event GWFinished(id_gw);
+    let M4_plain: bitstring = concat_4(id2b(id_gw),R1_ext,n2b(R2),t2b(T3_in)) in
+    out(public_channel, (M4_plain,h(M4_plain),T3_in))
+) | (
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+)
+
+--------------------------------------------------------------
+1st process: in(public_channel, (M4_in: bitstring,A4_in: bitstring,T4_in: timestamp)) done with message (a_9,a_3,a_4)
+
+1st process: let SK_U: bitstring = h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a_4),a_3)) succeeds
+
+1st process: event UserDerivedKey(h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a_4),a_3))) executed
+
+1st process: event UserFinished(id_u) executed
+
+1st process: out(public_channel, ~M_4) with ~M_4 = xor(secret_PFS_challenge,h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a_4),a_3))) done
+
+Additional knowledge of the attacker:
+~M_4 = xor(secret_PFS_challenge,h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a_4),a_3)))
+--------------------------------------------------------------
+1st process: new PW_new: bitstring creating PW_new_1
+
+1st process: let RPW_new: bitstring = h(xor(PW_new_1,Bio_User)) succeeds
+
+1st process: out(public_channel, (~M_5,~M_6,~M_7)) with ~M_5 = id_u, ~M_6 = h(xor(PW_User,Bio_User)), ~M_7 = h(xor(PW_new_1,Bio_User)) done
+
+Additional knowledge of the attacker:
+~M_7 = h(xor(PW_new_1,Bio_User))
+~M_6 = h(xor(PW_User,Bio_User))
+--------------------------------------------------------------
+1st process: Reduction 0
+
+New processes:
+(
+    in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp));
+    new R2: nonce;
+    new T2: timestamp;
+    let M1_dec: bitstring = ae_dec(M1_in,A1_in,K_GW) in
+    let R1_ext: bitstring = unconcat_4_2(M1_dec) in
+    let PID_u_ext: bitstring = unconcat_4_1(M1_dec) in
+    let M2_plain: bitstring = concat_4(PID_u_ext,R1_ext,n2b(R2),t2b(T2)) in
+    let A2: bitstring = h(M2_plain) in
+    let M2: bitstring = ae_enc(M2_plain,A2,K_ISD_GW) in
+    out(public_channel, (M2,A2,T2));
+    in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+    let SK_GW: bitstring = h(concat_4(R1_ext,t2b(T1_in),t2b(T3_in),A3_in)) in
+    event GWDerivedKey(SK_GW);
+    event GWFinished(id_gw);
+    let M4_plain: bitstring = concat_4(id2b(id_gw),R1_ext,n2b(R2),t2b(T3_in)) in
+    out(public_channel, (M4_plain,h(M4_plain),T3_in))
+) | (
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+)
+
+--------------------------------------------------------------
+1st process: in(public_channel, (M1_in: bitstring,A1_in: bitstring,T1_in: timestamp)) done with message (~M_1,~M_2,a_5) = (ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),a_5)
+
+1st process: new R2: nonce creating R2_1
+
+1st process: new T2: timestamp creating T2_1
+
+1st process: let M1_dec: bitstring = ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW) succeeds
+
+1st process: let R1_ext: bitstring = unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)) succeeds
+
+1st process: let PID_u_ext: bitstring = unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)) succeeds
+
+1st process: let M2_plain: bitstring = concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1)) succeeds
+
+1st process: let A2: bitstring = h(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1))) succeeds
+
+1st process: let M2: bitstring = ae_enc(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1)),h(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1))),K_ISD_GW) succeeds
+
+1st process: out(public_channel, (~M_8,~M_9,~M_10)) with ~M_8 = ae_enc(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1)),h(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1))),K_ISD_GW), ~M_9 = h(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1))), ~M_10 = T2_1 done
+
+Additional knowledge of the attacker:
+~M_10 = T2_1
+~M_9 = h(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1)))
+~M_8 = ae_enc(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1)),h(concat_4(unconcat_4_1(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T2_1))),K_ISD_GW)
+--------------------------------------------------------------
+New processes:
+(
+    in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp));
+    let SK_GW: bitstring = h(concat_4(unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),t2b(a_5),t2b(T3_in),A3_in)) in
+    event GWDerivedKey(SK_GW);
+    event GWFinished(id_gw);
+    let M4_plain: bitstring = concat_4(id2b(id_gw),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(T3_in)) in
+    out(public_channel, (M4_plain,h(M4_plain),T3_in))
+) | (
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+)
+
+--------------------------------------------------------------
+1st process: in(public_channel, (M3_in: bitstring,A3_in: bitstring,T3_in: timestamp)) done with message (a_8,a_7,a_6)
+
+1st process: let SK_GW: bitstring = h(concat_4(unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),t2b(a_5),t2b(a_6),a_7)) succeeds
+
+1st process: event GWDerivedKey(h(concat_4(unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),t2b(a_5),t2b(a_6),a_7))) executed
+
+1st process: event GWFinished(id_gw) executed
+
+1st process: let M4_plain: bitstring = concat_4(id2b(id_gw),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(a_6)) succeeds
+
+1st process: out(public_channel, (~M_11,~M_12,~M_13)) with ~M_11 = concat_4(id2b(id_gw),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(a_6)), ~M_12 = h(concat_4(id2b(id_gw),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(a_6))), ~M_13 = a_6 done
+
+Additional knowledge of the attacker:
+~M_12 = h(concat_4(id2b(id_gw),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(a_6)))
+concat_4(xor(~M_4,h(concat_4(unconcat_4_2(~M_11),t2b(~M_3),t2b(a_4),a_3))),a_2,a_1,a) = concat_4(secret_PFS_challenge,a_2,a_1,a)
+xor(~M_4,h(concat_4(unconcat_4_2(~M_11),t2b(~M_3),t2b(a_4),a_3))) = secret_PFS_challenge
+h(concat_4(unconcat_4_2(~M_11),t2b(~M_3),t2b(a_4),a_3)) = h(concat_4(n2b(R1_1),t2b(T1_1),t2b(a_4),a_3))
+concat_4(unconcat_4_2(~M_11),t2b(~M_3),t2b(a_4),a_3) = concat_4(n2b(R1_1),t2b(T1_1),t2b(a_4),a_3)
+unconcat_4_2(~M_11) = n2b(R1_1)
+~M_11 = concat_4(id2b(id_gw),unconcat_4_2(ae_dec(ae_enc(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1)),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW),h(concat_4(xor(id2b(id_u),h(concat_4(h(xor(PW_User,Bio_User)),n2b(R1_1),t2b(T1_1),n2b(R1_1)))),n2b(R1_1),id2b(id_gw),t2b(T1_1))),K_GW)),n2b(R2_1),t2b(a_6))
+--------------------------------------------------------------
+1st process: Reduction 0
+
+New processes:
+    phase 2;
+    out(public_channel, K_GW);
+    out(public_channel, K_ISD_GW);
+    out(public_channel, K_User)
+
+--------------------------------------------------------------
+The attacker has the message xor(~M_4,h(concat_4(unconcat_4_2(~M_11),t2b(~M_3),t2b(a_4),a_3))) = secret_PFS_challenge in phase 2.
+A trace has been found.
+RESULT not attacker_p2(secret_PFS_challenge[]) is false.
+-- Query not attacker_p2(PW_User[]) in process 1.
+Translating the process into Horn clauses...
+select attacker(ae_enc(M2_dec_1,ad_data,K_ISD_GW[]))/-5000
+Completing...
+200 rules inserted. Base: 179 rules (92 with conclusion selected). Queue: 53 rules.
+Termination warning: attacker(ae_enc(w,ad_data,K_ISD_GW[])) && attacker(ad_data) -> attacker_p2(w)
+Selecting 0
+Starting query not attacker_p2(PW_User[])
+RESULT not attacker_p2(PW_User[]) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query inj-event(GWFinished(u)) ==> inj-event(UserStarted(u)) is false.
+
+Query event(UserDerivedKey(k)) ==> event(GWDerivedKey(k)) is false.
+
+Query not attacker_p2(secret_PFS_challenge[]) is false.
+
+Query not attacker_p2(PW_User[]) is true.
+
+--------------------------------------------------------------
+
+                                                                                                              
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/LEAF-IIoT]
+└─# 
+

@@ -1,0 +1,205 @@
+(* LEAF-IIoT Protocol - "Hostile Environment" Model v8 *)
+(* FIXES: 
+   1. Removed ALL parameter names from "fun" declarations (e.g. "fun h(bitstring): bitstring").
+   2. "bitstring" is treated as a built-in type.
+   3. "equation" blocks still use variable names (required syntax).
+*)
+
+set traceDisplay = long.
+
+(* --- 1. Types and Constants --- *)
+
+type identity.
+type key.
+type nonce.
+type timestamp.
+(* type bitstring is built-in *)
+
+free public_channel: channel.
+
+(* Long-Term Secrets *)
+free K_GW: key [private].
+free K_ISD_GW: key [private].
+free id_u: identity.
+free id_gw: identity.
+
+(* User specific secrets *)
+free PW_User: bitstring [private].
+free Bio_User: bitstring [private].
+free K_User: key [private].
+free Ca_User: bitstring. 
+
+(* Secret for testing Perfect Forward Secrecy (PFS) *)
+free secret_PFS_challenge: bitstring [private].
+
+
+(* --- 2. Functions & Equations --- *)
+
+(* Hashing - Only types allowed in declaration *)
+fun h(bitstring): bitstring.
+
+(* XOR function - Only types allowed in declaration *)
+fun xor(bitstring, bitstring): bitstring.
+
+(* Equation requires variable names in forall *)
+equation forall x: bitstring, y: bitstring; xor(xor(x, y), y) = x.
+
+(* Type conversion helpers *)
+fun n2b(nonce): bitstring.
+fun k2b(key): bitstring.
+fun id2b(identity): bitstring.
+fun t2b(timestamp): bitstring.
+
+(* ASCON Authenticated Encryption *)
+fun ae_enc(bitstring, bitstring, key): bitstring.
+fun ae_dec(bitstring, bitstring, key): bitstring.
+
+equation forall m: bitstring, ad_data: bitstring, sk: key;
+    ae_dec(ae_enc(m, ad_data, sk), ad_data, sk) = m.
+
+(* Concatenation (4-tuple) *)
+fun concat_4(bitstring, bitstring, bitstring, bitstring): bitstring.
+fun unconcat_4_1(bitstring): bitstring.
+fun unconcat_4_2(bitstring): bitstring.
+fun unconcat_4_3(bitstring): bitstring.
+fun unconcat_4_4(bitstring): bitstring.
+
+equation forall w:bitstring, x:bitstring, y:bitstring, z:bitstring; unconcat_4_1(concat_4(w,x,y,z)) = w.
+equation forall w:bitstring, x:bitstring, y:bitstring, z:bitstring; unconcat_4_2(concat_4(w,x,y,z)) = x.
+equation forall w:bitstring, x:bitstring, y:bitstring, z:bitstring; unconcat_4_3(concat_4(w,x,y,z)) = y.
+equation forall w:bitstring, x:bitstring, y:bitstring, z:bitstring; unconcat_4_4(concat_4(w,x,y,z)) = z.
+
+
+(* --- 3. Events for Security Properties --- *)
+
+event UserStarted(identity).
+event UserFinished(identity).
+event GWFinished(identity).
+event ISDFinished(identity).
+
+event UserDerivedKey(bitstring).
+event GWDerivedKey(bitstring).
+
+
+(* --- 4. Protocol Processes --- *)
+
+let ProcessUser(K_u: key, PW_u: bitstring, Bio_u: bitstring) =
+    (* Step 1: Login *)
+    new R1: nonce;
+    new T1: timestamp;
+    
+    let RPW = h(xor(PW_u, Bio_u)) in
+    let B_k1 = xor(k2b(K_u), RPW) in
+    let PID_u = xor(id2b(id_u), h(concat_4(RPW, n2b(R1), t2b(T1), n2b(R1)))) in
+    
+    let M1_plain = concat_4(PID_u, n2b(R1), id2b(id_gw), t2b(T1)) in
+    let A1 = h(M1_plain) in
+    let M1 = ae_enc(M1_plain, A1, K_GW) in
+    
+    event UserStarted(id_u);
+    out(public_channel, (M1, A1, T1));
+
+    (* Step 4: Receive M4 and derive Session Key *)
+    in(public_channel, (M4_in: bitstring, A4_in: bitstring, T4_in: timestamp));
+    
+    let SK_U = h(concat_4(n2b(R1), t2b(T1), t2b(T4_in), A4_in)) in
+    
+    event UserDerivedKey(SK_U);
+    event UserFinished(id_u);
+    
+    (* Check for PFS: Encrypt a secret with the session key *)
+    out(public_channel, xor(secret_PFS_challenge, SK_U));
+    
+    (* --- FLAW 8: Simulate Password Change Phase --- *)
+    new PW_new: bitstring;
+    let RPW_new = h(xor(PW_new, Bio_u)) in
+    out(public_channel, (id_u, RPW, RPW_new)).
+
+
+let ProcessGateway(K_u_stored: key, Ca_stored: bitstring) =
+    (* Step 2: Receive M1 from User *)
+    in(public_channel, (M1_in: bitstring, A1_in: bitstring, T1_in: timestamp));
+    
+    let M1_dec = ae_dec(M1_in, A1_in, K_GW) in
+    let PID_u_ext = unconcat_4_1(M1_dec) in
+    let R1_ext = unconcat_4_2(M1_dec) in
+    
+    (* Forward to ISD *)
+    new R2: nonce;
+    new T2: timestamp;
+    let M2_plain = concat_4(PID_u_ext, R1_ext, n2b(R2), t2b(T2)) in
+    let A2 = h(M2_plain) in
+    let M2 = ae_enc(M2_plain, A2, K_ISD_GW) in
+    
+    out(public_channel, (M2, A2, T2));
+    
+    (* Step 3: Receive M3 from ISD *)
+    in(public_channel, (M3_in: bitstring, A3_in: bitstring, T3_in: timestamp));
+    let M3_dec = ae_dec(M3_in, A3_in, K_ISD_GW) in
+    
+    (* Derive Session Key *)
+    let SK_GW = h(concat_4(R1_ext, t2b(T1_in), t2b(T3_in), A3_in)) in
+    
+    event GWDerivedKey(SK_GW);
+    event GWFinished(id_gw);
+    
+    (* Send M4 to User *)
+    let M4_plain = concat_4(id2b(id_gw), R1_ext, n2b(R2), t2b(T3_in)) in
+    out(public_channel, (M4_plain, h(M4_plain), T3_in)).
+
+
+let ProcessISD() =
+    in(public_channel, (M2_in: bitstring, A2_in: bitstring, T2_in: timestamp));
+    let M2_dec = ae_dec(M2_in, A2_in, K_ISD_GW) in
+    
+    new R3: nonce;
+    new T3: timestamp;
+    
+    let M3_plain = concat_4(M2_dec, n2b(R3), t2b(T3), k2b(K_ISD_GW)) in
+    let A3 = h(M3_plain) in
+    let M3 = ae_enc(M3_plain, A3, K_ISD_GW) in
+    
+    event ISDFinished(id_gw);
+    out(public_channel, (M3, A3, T3)).
+
+(* Attacker process to leak biometrics *)
+let ProcessLeaks(Bio_val: bitstring) =
+   out(public_channel, Bio_val).
+
+
+(* --- 5. Queries --- *)
+
+(* Flaw 2 (Replay Attack) *)
+query u: identity; inj-event(GWFinished(u)) ==> inj-event(UserStarted(u)).
+
+(* Flaw 4 (Key Confirmation) *)
+query k: bitstring; event(UserDerivedKey(k)) ==> event(GWDerivedKey(k)).
+
+(* Flaw 1 (PFS) *)
+query attacker(secret_PFS_challenge) phase 2.
+
+(* Flaw 8 (Offline Password Attack) *)
+query attacker(PW_User).
+
+
+(* --- 6. Main Process --- *)
+
+process
+    (* Phase 1: Normal protocol execution + Leaks *)
+    (
+      (!ProcessUser(K_User, PW_User, Bio_User)) |
+      (!ProcessGateway(K_User, Ca_User)) |
+      (!ProcessISD()) |
+      (ProcessLeaks(Bio_User))
+    )
+    
+    (* Phase 2: Attacker compromises Long Term Keys for PFS test *)
+    |
+    (
+      phase 2;
+      out(public_channel, K_GW);
+      out(public_channel, K_ISD_GW);
+      out(public_channel, K_User)
+    )
+
+

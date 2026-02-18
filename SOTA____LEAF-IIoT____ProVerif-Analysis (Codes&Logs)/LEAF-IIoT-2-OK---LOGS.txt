@@ -1,0 +1,641 @@
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/LEAF-IIoT]
+└─# proverif LEAF-IIoT-2-OK.pv
+Linear part: No equation.
+Convergent part:
+xor(xor(x,y),y) = x
+Completing equations...
+Completed equations:
+xor(xor(x,y),y) = x
+Process 0 (that is, the initial process):
+{1}new Ch_j: bitstring;
+{2}new hd_g: bitstring;
+{3}new Ch_i: bitstring;
+{4}new hd_i: bitstring;
+{5}new Ch_u: bitstring;
+{6}new hdk_u: bitstring;
+{7}new hdk1_u: bitstring;
+{8}let Res_j: bitstring = puf_gen(id2b(ID_G),Ch_j) in
+{9}let K_GW: bitstring = h(concat(Res_j,hd_g)) in
+{10}let Res_i: bitstring = puf_gen(id2b(SID),Ch_i) in
+{11}let Bkd: bitstring = h(concat(Res_i,hd_i)) in
+{12}let Cd_reg: bitstring = ae_enc(K_GW,h(t2b(reg_ts)),Bkd) in
+{13}let Z_val: bitstring = xor(h(id2b(ID_G)),h(Bkd)) in
+{14}let Res_a: bitstring = puf_gen(id2b(ID_U),Ch_u) in
+{15}let Bk1: bitstring = h(concat(Res_a,hdk1_u)) in
+{16}let Cu_reg: bitstring = ae_enc(K_GW,h(t2b(reg_ts)),Bk1) in
+{17}let Bio_u: bitstring = h(PW_U) in
+{18}let Bk_star: bitstring = h(concat(Bio_u,hdk_u)) in
+{19}let A1: bitstring = h(concat3(id2b(ID_U),PW_U,Bk_star)) in
+{20}let PID_init: bitstring = h(id2b(ID_U)) in
+{21}let Pa_blob: bitstring = concat(Ch_u,PID_init) in
+{22}let Ca_card: bitstring = ae_enc(A1,h(t2b(reg_ts)),Pa_blob) in
+{23}phase 1;
+(
+    {24}!
+    {25}let Uid: identity = ID_U in
+    {26}let Pwd: bitstring = PW_U in
+    {27}let Ch_uk: bitstring = Ch_u in
+    {28}let S_id: identity = SID in
+    {29}let G_id: identity = ID_G in
+    {30}let hdk: bitstring = hdk_u in
+    {31}let hdk1: bitstring = hdk1_u in
+    {32}let Bk_star_1: bitstring = h(concat(Bio_u,hdk)) in
+    {33}let A1_star: bitstring = h(concat3(id2b(Uid),Pwd,Bk_star_1)) in
+    {34}let Pa: bitstring = ae_dec(A1_star,h(t2b(reg_ts)),Ca_card) in
+    {35}let Res_a_1: bitstring = puf_gen(id2b(Uid),Ch_uk) in
+    {36}let Bk1_1: bitstring = h(concat(Res_a_1,hdk1)) in
+    {37}new R2: nonce;
+    {38}new T1: timestamp;
+    {39}event UserStarted(Uid,S_id,PID_init);
+    {40}let P2: bitstring = concat(n2b(R2),xor(id2b(S_id),n2b(R2))) in
+    {41}let Ad2: bitstring = xor(PID_init,t2b(T1)) in
+    {42}let C_bc_MAC2: bitstring = ae_enc(Bk1_1,Ad2,P2) in
+    {43}let M1: bitstring = (T1,PID_init,C_bc_MAC2) in
+    {44}out(public_ch, M1);
+    {45}in(public_ch, (in_T3: timestamp,in_Cgh_MAC4: bitstring,in_Ad6: bitstring));
+    {46}let x_term: bitstring = xor(xor(xor(xor(n2b(R2),PID_init),h(id2b(G_id))),id2b(S_id)),t2b(in_T3)) in
+    {47}let K2: bitstring = h(x_term) in
+    {48}let P4: bitstring = ae_dec(K2,in_Ad6,in_Cgh_MAC4) in
+    {49}let SK_u: bitstring = h(xor(xor(K2,P4),id2b(S_id))) in
+    {50}if (in_Ad6 = h(SK_u)) then
+    {51}event UserAuthGW(Uid,G_id);
+    {52}event UserCompleted(Uid,S_id,P4,SK_u);
+    {53}let SK_U: bitstring = SK_u in
+    {54}let PID_New_Secret: bitstring = P4 in
+    0
+) | (
+    {55}!
+    {56}let G_id_1: identity = ID_G in
+    {57}let Ch_j_1: bitstring = Ch_j in
+    {58}let hd: bitstring = hd_g in
+    {59}let U_id: identity = ID_U in
+    {60}let S_id_1: identity = SID in
+    {61}let Res_j_1: bitstring = puf_gen(id2b(G_id_1),Ch_j_1) in
+    {62}let K_GW_1: bitstring = h(concat(Res_j_1,hd)) in
+    {63}in(public_ch, (in_T1: timestamp,in_PID: bitstring,in_Ct_User: bitstring));
+    {64}let Bk1_rec: bitstring = ae_dec(K_GW_1,h(t2b(reg_ts)),Cu_reg) in
+    {65}let Ad3: bitstring = xor(in_PID,t2b(in_T1)) in
+    {66}let P2_rec: bitstring = ae_dec(Bk1_rec,Ad3,in_Ct_User) in
+    {67}let R2_rec: bitstring = unconcat_1(P2_rec) in
+    {68}let Masked_SID: bitstring = unconcat_2(P2_rec) in
+    {69}if (xor(Masked_SID,R2_rec) = id2b(S_id_1)) then
+    {70}event GWStarted(G_id_1,U_id);
+    {71}event GWAuthUser(G_id_1,U_id);
+    {72}let Bkd_rec: bitstring = ae_dec(K_GW_1,h(t2b(reg_ts)),Cd_reg) in
+    {73}new R3: nonce;
+    {74}new T2: timestamp;
+    {75}new PID_n: bitstring;
+    {76}let x_mid: bitstring = xor(xor(P2_rec,in_PID),id2b(S_id_1)) in
+    {77}let P3: bitstring = concat3(n2b(R3),x_mid,PID_n) in
+    {78}let Ad4: bitstring = xor(id2b(S_id_1),t2b(T2)) in
+    {79}let C_def_MAC3: bitstring = ae_enc(Bkd_rec,Ad4,P3) in
+    {80}let M2: bitstring = (T2,C_def_MAC3) in
+    {81}event GWAuthISD(G_id_1,S_id_1);
+    {82}out(public_ch, M2)
+) | (
+    {83}!
+    {84}let S_id_2: identity = SID in
+    {85}let Ch_i_1: bitstring = Ch_i in
+    {86}let hdi: bitstring = hd_i in
+    {87}let G_id_2: identity = ID_G in
+    {88}let Res_i_1: bitstring = puf_gen(id2b(S_id_2),Ch_i_1) in
+    {89}let Bkd_1: bitstring = h(concat(Res_i_1,hdi)) in
+    {90}in(public_ch, (in_T2: timestamp,in_Ct_GW: bitstring));
+    {91}let Ad5: bitstring = xor(id2b(S_id_2),t2b(in_T2)) in
+    {92}let P3_rec: bitstring = ae_dec(Bkd_1,Ad5,in_Ct_GW) in
+    {93}event ISDStarted(S_id_2);
+    {94}event ISDAuthGW(S_id_2,G_id_2);
+    {95}new R4: nonce;
+    {96}new T3: timestamp;
+    {97}let derived_SIDj: bitstring = xor(Z_val,h(Bkd_1)) in
+    {98}let K1: bitstring = h(xor(xor(P3_rec,derived_SIDj),t2b(T3))) in
+    {99}let P4_gen: bitstring = concat(P3_rec,n2b(R4)) in
+    {100}let SK_i: bitstring = h(xor(xor(K1,P4_gen),id2b(S_id_2))) in
+    {101}let Ad6: bitstring = h(SK_i) in
+    {102}let C_gh_MAC4: bitstring = ae_enc(K1,Ad6,P4_gen) in
+    {103}let M3: bitstring = (T3,C_gh_MAC4,Ad6) in
+    {104}event ISDCompleted(S_id_2,G_id_2,P4_gen,SK_i);
+    {105}out(public_ch, M3);
+    {106}let SK_ISD: bitstring = SK_i in
+    0
+) | (
+    {107}phase 2;
+    {108}out(public_ch, (K_GW,PW_U))
+)
+
+--  Process 1 (that is, process 0, encoded for secret PID_New_Secret, secret SK_ISD, secret SK_U, with let moved downwards):
+{1}new Ch_j: bitstring;
+{2}new hd_g: bitstring;
+{3}new Ch_i: bitstring;
+{4}new hd_i: bitstring;
+{5}new Ch_u: bitstring;
+{6}new hdk_u: bitstring;
+{7}new hdk1_u: bitstring;
+{23}phase 1;
+(
+    {24}!
+    {30}let hdk: bitstring = hdk_u in
+    {17}let Bio_u: bitstring = h(PW_U) in
+    {32}let Bk_star_1: bitstring = h(concat(Bio_u,hdk)) in
+    {26}let Pwd: bitstring = PW_U in
+    {25}let Uid: identity = ID_U in
+    {33}let A1_star: bitstring = h(concat3(id2b(Uid),Pwd,Bk_star_1)) in
+    {20}let PID_init: bitstring = h(id2b(ID_U)) in
+    {21}let Pa_blob: bitstring = concat(Ch_u,PID_init) in
+    {18}let Bk_star: bitstring = h(concat(Bio_u,hdk_u)) in
+    {19}let A1: bitstring = h(concat3(id2b(ID_U),PW_U,Bk_star)) in
+    {22}let Ca_card: bitstring = ae_enc(A1,h(t2b(reg_ts)),Pa_blob) in
+    {34}let Pa: bitstring = ae_dec(A1_star,h(t2b(reg_ts)),Ca_card) in
+    {37}new R2: nonce;
+    {38}new T1: timestamp;
+    {28}let S_id: identity = SID in
+    {39}event UserStarted(Uid,S_id,PID_init);
+    {41}let Ad2: bitstring = xor(PID_init,t2b(T1)) in
+    {40}let P2: bitstring = concat(n2b(R2),xor(id2b(S_id),n2b(R2))) in
+    {27}let Ch_uk: bitstring = Ch_u in
+    {35}let Res_a_1: bitstring = puf_gen(id2b(Uid),Ch_uk) in
+    {31}let hdk1: bitstring = hdk1_u in
+    {36}let Bk1_1: bitstring = h(concat(Res_a_1,hdk1)) in
+    {42}let C_bc_MAC2: bitstring = ae_enc(Bk1_1,Ad2,P2) in
+    {43}let M1: bitstring = (T1,PID_init,C_bc_MAC2) in
+    {44}out(public_ch, M1);
+    {45}in(public_ch, (in_T3: timestamp,in_Cgh_MAC4: bitstring,in_Ad6: bitstring));
+    {29}let G_id: identity = ID_G in
+    {46}let x_term: bitstring = xor(xor(xor(xor(n2b(R2),PID_init),h(id2b(G_id))),id2b(S_id)),t2b(in_T3)) in
+    {47}let K2: bitstring = h(x_term) in
+    {48}let P4: bitstring = ae_dec(K2,in_Ad6,in_Cgh_MAC4) in
+    {49}let SK_u: bitstring = h(xor(xor(K2,P4),id2b(S_id))) in
+    {50}if (in_Ad6 = h(SK_u)) then
+    {51}event UserAuthGW(Uid,G_id);
+    {52}event UserCompleted(Uid,S_id,P4,SK_u);
+    {53}let SK_U: bitstring = SK_u in
+    {54}event SK_U_contains(SK_U);
+    {55}let PID_New_Secret: bitstring = P4 in
+    {56}event PID_New_Secret_contains(PID_New_Secret)
+) | (
+    {10}let Res_i: bitstring = puf_gen(id2b(SID),Ch_i) in
+    {11}let Bkd: bitstring = h(concat(Res_i,hd_i)) in
+    {8}let Res_j: bitstring = puf_gen(id2b(ID_G),Ch_j) in
+    {9}let K_GW: bitstring = h(concat(Res_j,hd_g)) in
+    (
+        {57}!
+        {65}in(public_ch, (in_T1: timestamp,in_PID: bitstring,in_Ct_User: bitstring));
+        {59}let Ch_j_1: bitstring = Ch_j in
+        {58}let G_id_1: identity = ID_G in
+        {63}let Res_j_1: bitstring = puf_gen(id2b(G_id_1),Ch_j_1) in
+        {60}let hd: bitstring = hd_g in
+        {64}let K_GW_1: bitstring = h(concat(Res_j_1,hd)) in
+        {14}let Res_a: bitstring = puf_gen(id2b(ID_U),Ch_u) in
+        {15}let Bk1: bitstring = h(concat(Res_a,hdk1_u)) in
+        {16}let Cu_reg: bitstring = ae_enc(K_GW,h(t2b(reg_ts)),Bk1) in
+        {66}let Bk1_rec: bitstring = ae_dec(K_GW_1,h(t2b(reg_ts)),Cu_reg) in
+        {67}let Ad3: bitstring = xor(in_PID,t2b(in_T1)) in
+        {68}let P2_rec: bitstring = ae_dec(Bk1_rec,Ad3,in_Ct_User) in
+        {69}let R2_rec: bitstring = unconcat_1(P2_rec) in
+        {70}let Masked_SID: bitstring = unconcat_2(P2_rec) in
+        {62}let S_id_1: identity = SID in
+        {71}if (xor(Masked_SID,R2_rec) = id2b(S_id_1)) then
+        {61}let U_id: identity = ID_U in
+        {72}event GWStarted(G_id_1,U_id);
+        {73}event GWAuthUser(G_id_1,U_id);
+        {12}let Cd_reg: bitstring = ae_enc(K_GW,h(t2b(reg_ts)),Bkd) in
+        {74}let Bkd_rec: bitstring = ae_dec(K_GW_1,h(t2b(reg_ts)),Cd_reg) in
+        {75}new R3: nonce;
+        {76}new T2: timestamp;
+        {77}new PID_n: bitstring;
+        {83}event GWAuthISD(G_id_1,S_id_1);
+        {80}let Ad4: bitstring = xor(id2b(S_id_1),t2b(T2)) in
+        {78}let x_mid: bitstring = xor(xor(P2_rec,in_PID),id2b(S_id_1)) in
+        {79}let P3: bitstring = concat3(n2b(R3),x_mid,PID_n) in
+        {81}let C_def_MAC3: bitstring = ae_enc(Bkd_rec,Ad4,P3) in
+        {82}let M2: bitstring = (T2,C_def_MAC3) in
+        {84}out(public_ch, M2)
+    ) | (
+        {85}!
+        {92}in(public_ch, (in_T2: timestamp,in_Ct_GW: bitstring));
+        {86}let S_id_2: identity = SID in
+        {93}let Ad5: bitstring = xor(id2b(S_id_2),t2b(in_T2)) in
+        {87}let Ch_i_1: bitstring = Ch_i in
+        {90}let Res_i_1: bitstring = puf_gen(id2b(S_id_2),Ch_i_1) in
+        {88}let hdi: bitstring = hd_i in
+        {91}let Bkd_1: bitstring = h(concat(Res_i_1,hdi)) in
+        {94}let P3_rec: bitstring = ae_dec(Bkd_1,Ad5,in_Ct_GW) in
+        {95}event ISDStarted(S_id_2);
+        {89}let G_id_2: identity = ID_G in
+        {96}event ISDAuthGW(S_id_2,G_id_2);
+        {97}new R4: nonce;
+        {98}new T3: timestamp;
+        {101}let P4_gen: bitstring = concat(P3_rec,n2b(R4)) in
+        {13}let Z_val: bitstring = xor(h(id2b(ID_G)),h(Bkd)) in
+        {99}let derived_SIDj: bitstring = xor(Z_val,h(Bkd_1)) in
+        {100}let K1: bitstring = h(xor(xor(P3_rec,derived_SIDj),t2b(T3))) in
+        {102}let SK_i: bitstring = h(xor(xor(K1,P4_gen),id2b(S_id_2))) in
+        {106}event ISDCompleted(S_id_2,G_id_2,P4_gen,SK_i);
+        {103}let Ad6: bitstring = h(SK_i) in
+        {104}let C_gh_MAC4: bitstring = ae_enc(K1,Ad6,P4_gen) in
+        {105}let M3: bitstring = (T3,C_gh_MAC4,Ad6) in
+        {107}out(public_ch, M3);
+        {108}let SK_ISD: bitstring = SK_i in
+        {109}event SK_ISD_contains(SK_ISD)
+    ) | (
+        {110}phase 2;
+        {111}out(public_ch, (K_GW,PW_U))
+    )
+)
+
+-- Query not attacker_bitstring_p2(PW_U[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (108 with conclusion selected). Queue: 71 rules.
+400 rules inserted. Base: 394 rules (157 with conclusion selected). Queue: 74 rules.
+600 rules inserted. Base: 547 rules (168 with conclusion selected). Queue: 127 rules.
+800 rules inserted. Base: 697 rules (173 with conclusion selected). Queue: 130 rules.
+1000 rules inserted. Base: 845 rules (173 with conclusion selected). Queue: 61 rules.
+1200 rules inserted. Base: 1011 rules (173 with conclusion selected). Queue: 10 rules.
+Starting query not attacker_bitstring_p2(PW_U[])
+goal reachable: attacker_bitstring_p2(PW_U[])
+
+Derivation:
+
+1. The message (h(concat(puf_gen(id2b(ID_G[]),Ch_j[]),hd_g[])),PW_U[]) may be sent to the attacker in phase 2 at output {111}.
+attacker_bitstring_p2((h(concat(puf_gen(id2b(ID_G[]),Ch_j[]),hd_g[])),PW_U[])).
+
+2. By 1, the attacker may know (h(concat(puf_gen(id2b(ID_G[]),Ch_j[]),hd_g[])),PW_U[]) in phase 2.
+Using the function 2-proj-bitstring-bitstring-tuple the attacker may obtain PW_U[] in phase 2.
+attacker_bitstring_p2(PW_U[]).
+
+3. By 2, attacker_bitstring_p2(PW_U[]).
+The goal is reached, represented in the following fact:
+attacker_bitstring_p2(PW_U[]).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new Ch_j: bitstring creating Ch_j_2 at {1}
+
+new hd_g: bitstring creating hd_g_1 at {2}
+
+new Ch_i: bitstring creating Ch_i_2 at {3}
+
+new hd_i: bitstring creating hd_i_1 at {4}
+
+new Ch_u: bitstring creating Ch_u_1 at {5}
+
+new hdk_u: bitstring creating hdk_u_1 at {6}
+
+new hdk1_u: bitstring creating hdk1_u_1 at {7}
+
+out(public_ch, (~M,~M_1)) with ~M = h(concat(puf_gen(id2b(ID_G),Ch_j_2),hd_g_1)), ~M_1 = PW_U at {111}
+
+The attacker has the message ~M_1 = PW_U in phase 2.
+A trace has been found.
+RESULT not attacker_bitstring_p2(PW_U[]) is false.
+-- Query not attacker_identity_p2(ID_U[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (108 with conclusion selected). Queue: 71 rules.
+400 rules inserted. Base: 394 rules (157 with conclusion selected). Queue: 74 rules.
+600 rules inserted. Base: 547 rules (168 with conclusion selected). Queue: 127 rules.
+800 rules inserted. Base: 697 rules (173 with conclusion selected). Queue: 130 rules.
+1000 rules inserted. Base: 845 rules (173 with conclusion selected). Queue: 61 rules.
+1200 rules inserted. Base: 1011 rules (173 with conclusion selected). Queue: 10 rules.
+Starting query not attacker_identity_p2(ID_U[])
+RESULT not attacker_identity_p2(ID_U[]) is true.
+-- Query secret SK_U encoded as not (event(SK_U_contains(v)) && attacker_bitstring_p2(v)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (108 with conclusion selected). Queue: 73 rules.
+400 rules inserted. Base: 393 rules (155 with conclusion selected). Queue: 73 rules.
+600 rules inserted. Base: 539 rules (168 with conclusion selected). Queue: 123 rules.
+800 rules inserted. Base: 701 rules (173 with conclusion selected). Queue: 138 rules.
+1000 rules inserted. Base: 842 rules (173 with conclusion selected). Queue: 95 rules.
+1200 rules inserted. Base: 1006 rules (173 with conclusion selected). Queue: 39 rules.
+Starting query secret SK_U
+RESULT secret SK_U is true.
+-- Query secret SK_ISD encoded as not (event(SK_ISD_contains(v)) && attacker_bitstring_p2(v)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (108 with conclusion selected). Queue: 75 rules.
+400 rules inserted. Base: 396 rules (155 with conclusion selected). Queue: 77 rules.
+600 rules inserted. Base: 542 rules (164 with conclusion selected). Queue: 125 rules.
+800 rules inserted. Base: 708 rules (170 with conclusion selected). Queue: 149 rules.
+1000 rules inserted. Base: 851 rules (177 with conclusion selected). Queue: 113 rules.
+1200 rules inserted. Base: 1027 rules (177 with conclusion selected). Queue: 61 rules.
+Starting query secret SK_ISD
+200 rules inserted. Base: 188 rules (0 with conclusion selected). Queue: 57 rules.
+RESULT secret SK_ISD is true.
+-- Query secret PID_New_Secret encoded as not (event(PID_New_Secret_contains(v)) && attacker_bitstring_p2(v)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (108 with conclusion selected). Queue: 73 rules.
+400 rules inserted. Base: 393 rules (155 with conclusion selected). Queue: 73 rules.
+600 rules inserted. Base: 539 rules (168 with conclusion selected). Queue: 123 rules.
+800 rules inserted. Base: 701 rules (173 with conclusion selected). Queue: 138 rules.
+1000 rules inserted. Base: 842 rules (173 with conclusion selected). Queue: 95 rules.
+1200 rules inserted. Base: 1006 rules (173 with conclusion selected). Queue: 39 rules.
+Starting query secret PID_New_Secret
+RESULT secret PID_New_Secret is true.
+-- Query inj-event(GWAuthUser(g,u)) ==> inj-event(UserStarted(u,g,h(id2b(u)))) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (108 with conclusion selected). Queue: 73 rules.
+400 rules inserted. Base: 393 rules (155 with conclusion selected). Queue: 74 rules.
+600 rules inserted. Base: 544 rules (170 with conclusion selected). Queue: 123 rules.
+800 rules inserted. Base: 710 rules (170 with conclusion selected). Queue: 150 rules.
+1000 rules inserted. Base: 844 rules (175 with conclusion selected). Queue: 100 rules.
+1200 rules inserted. Base: 1016 rules (175 with conclusion selected). Queue: 45 rules.
+Starting query inj-event(GWAuthUser(g,u)) ==> inj-event(UserStarted(u,g,h(id2b(u))))
+goal reachable: begin(UserStarted(ID_U[],SID[],h(id2b(ID_U[]))),@occ39_1) -> end(@occ73_1,GWAuthUser(ID_G[],ID_U[]))
+Abbreviations:
+T1_1 = T1[!1 = @sid]
+R2_1 = R2[!1 = @sid]
+@occ73_1 = @occ73[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_1]
+@occ39_1 = @occ39[!1 = @sid]
+
+Derivation:
+Abbreviations:
+T1_1 = T1[!1 = @sid]
+R2_1 = R2[!1 = @sid]
+@occ73_1 = @occ73[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_1]
+@occ39_1 = @occ39[!1 = @sid]
+
+1. The event UserStarted(ID_U[],SID[],h(id2b(ID_U[]))) (with occurrence name @occ39_1) may be executed at {39}.
+So the message (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) may be sent to the attacker in phase 1 at output {44}.
+attacker_bitstring_p1((T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))))).
+
+2. By 1, the attacker may know (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) in phase 1.
+Using the function 3-proj-timestamp-bitstring-bitstring-tuple the attacker may obtain ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))) in phase 1.
+attacker_bitstring_p1(ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))).
+
+3. By 1, the attacker may know (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) in phase 1.
+Using the function 2-proj-timestamp-bitstring-bitstring-tuple the attacker may obtain h(id2b(ID_U[])) in phase 1.
+attacker_bitstring_p1(h(id2b(ID_U[]))).
+
+4. By 1, the attacker may know (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) in phase 1.
+Using the function 1-proj-timestamp-bitstring-bitstring-tuple the attacker may obtain T1_1 in phase 1.
+attacker_timestamp_p1(T1_1).
+
+5. By 4, the attacker may know T1_1 in phase 1.
+By 3, the attacker may know h(id2b(ID_U[])) in phase 1.
+By 2, the attacker may know ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))) in phase 1.
+Using the function timestamp-bitstring-bitstring-tuple the attacker may obtain (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) in phase 1.
+attacker_bitstring_p1((T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))))).
+
+6. The message (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) that the attacker may have in phase 1 by 5 may be received at input {65}.
+So event GWAuthUser(ID_G[],ID_U[]) may be executed at {73} in session @sid_1.
+end(@occ73_1,GWAuthUser(ID_G[],ID_U[])).
+
+7. By 6, end(@occ73_1,GWAuthUser(ID_G[],ID_U[])).
+The goal is reached, represented in the following fact:
+end(@occ73_1,GWAuthUser(ID_G[],ID_U[])).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new Ch_j: bitstring creating Ch_j_2 at {1}
+
+new hd_g: bitstring creating hd_g_1 at {2}
+
+new Ch_i: bitstring creating Ch_i_2 at {3}
+
+new hd_i: bitstring creating hd_i_1 at {4}
+
+new Ch_u: bitstring creating Ch_u_1 at {5}
+
+new hdk_u: bitstring creating hdk_u_1 at {6}
+
+new hdk1_u: bitstring creating hdk1_u_1 at {7}
+
+new R2: nonce creating R2_1 at {37} in copy a
+
+new T1: timestamp creating T1_1 at {38} in copy a
+
+event UserStarted(ID_U,SID,h(id2b(ID_U))) at {39} in copy a
+
+out(public_ch, (~M,~M_1,~M_2)) with ~M = T1_1, ~M_1 = h(id2b(ID_U)), ~M_2 = ae_enc(h(concat(puf_gen(id2b(ID_U),Ch_u_1),hdk1_u_1)),xor(h(id2b(ID_U)),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1)))) at {44} in copy a
+
+in(public_ch, (~M,~M_1,~M_2)) with ~M = T1_1, ~M_1 = h(id2b(ID_U)), ~M_2 = ae_enc(h(concat(puf_gen(id2b(ID_U),Ch_u_1),hdk1_u_1)),xor(h(id2b(ID_U)),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1)))) at {65} in copy a_1
+
+event GWStarted(ID_G,ID_U) at {72} in copy a_1
+
+event GWAuthUser(ID_G,ID_U) at {73} in copy a_1 (goal)
+
+The event GWAuthUser(ID_G,ID_U) is executed at {73} in copy a_1.
+A trace has been found.
+RESULT inj-event(GWAuthUser(g,u)) ==> inj-event(UserStarted(u,g,h(id2b(u)))) is false.
+RESULT (even event(GWAuthUser(g,u)) ==> event(UserStarted(u,g,h(id2b(u)))) is false.)
+-- Query inj-event(UserAuthGW(u,g)) ==> inj-event(GWStarted(g,u)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (108 with conclusion selected). Queue: 73 rules.
+400 rules inserted. Base: 393 rules (155 with conclusion selected). Queue: 73 rules.
+600 rules inserted. Base: 539 rules (168 with conclusion selected). Queue: 123 rules.
+800 rules inserted. Base: 701 rules (173 with conclusion selected). Queue: 138 rules.
+1000 rules inserted. Base: 842 rules (173 with conclusion selected). Queue: 95 rules.
+1200 rules inserted. Base: 1006 rules (173 with conclusion selected). Queue: 39 rules.
+Starting query inj-event(UserAuthGW(u,g)) ==> inj-event(GWStarted(g,u))
+RESULT inj-event(UserAuthGW(u,g)) ==> inj-event(GWStarted(g,u)) is true.
+-- Query inj-event(ISDAuthGW(s,g)) ==> inj-event(GWAuthISD(g,s)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (108 with conclusion selected). Queue: 72 rules.
+400 rules inserted. Base: 394 rules (155 with conclusion selected). Queue: 71 rules.
+600 rules inserted. Base: 550 rules (169 with conclusion selected). Queue: 126 rules.
+800 rules inserted. Base: 707 rules (175 with conclusion selected). Queue: 132 rules.
+1000 rules inserted. Base: 850 rules (175 with conclusion selected). Queue: 72 rules.
+1200 rules inserted. Base: 1015 rules (175 with conclusion selected). Queue: 23 rules.
+Starting query inj-event(ISDAuthGW(s,g)) ==> inj-event(GWAuthISD(g,s))
+goal reachable: @sid ≠ @sid_1 && begin(GWAuthISD(ID_G[],SID[]),@occ83_1) -> end(@occ96_1,ISDAuthGW(SID[],ID_G[])) && end(@occ96_2,ISDAuthGW(SID[],ID_G[]))
+Abbreviations:
+T1_1 = T1[!1 = @sid_2]
+R2_1 = R2[!1 = @sid_2]
+T2_1 = T2[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_3]
+R3_1 = R3[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_3]
+PID_n_1 = PID_n[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_3]
+@occ96_1 = @occ96[in_Ct_GW = ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1)),in_T2 = T2_1,!1 = @sid]
+@occ96_2 = @occ96[in_Ct_GW = ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1)),in_T2 = T2_1,!1 = @sid_1]
+@occ83_1 = @occ83[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_3]
+
+Derivation:
+Abbreviations:
+T1_1 = T1[!1 = @sid]
+R2_1 = R2[!1 = @sid]
+T2_1 = T2[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_1]
+R3_1 = R3[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_1]
+PID_n_1 = PID_n[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_1]
+@occ96_1 = @occ96[in_Ct_GW = ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1)),in_T2 = T2_1,!1 = @sid_2]
+@occ96_2 = @occ96[in_Ct_GW = ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1)),in_T2 = T2_1,!1 = @sid_3]
+@occ83_1 = @occ83[in_Ct_User = ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))),in_PID = h(id2b(ID_U[])),in_T1 = T1_1,!1 = @sid_1]
+T1_2 = T1[!1 = @sid_4]
+R2_2 = R2[!1 = @sid_4]
+
+1. The message (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) may be sent to the attacker in phase 1 at output {44}.
+attacker_bitstring_p1((T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))))).
+
+2. By 1, the attacker may know (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) in phase 1.
+Using the function 3-proj-timestamp-bitstring-bitstring-tuple the attacker may obtain ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))) in phase 1.
+attacker_bitstring_p1(ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))).
+
+3. The message (T1_2,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_2)),concat(n2b(R2_2),xor(id2b(SID[]),n2b(R2_2))))) may be sent to the attacker in phase 1 at output {44}.
+attacker_bitstring_p1((T1_2,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_2)),concat(n2b(R2_2),xor(id2b(SID[]),n2b(R2_2)))))).
+
+4. By 3, the attacker may know (T1_2,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_2)),concat(n2b(R2_2),xor(id2b(SID[]),n2b(R2_2))))) in phase 1.
+Using the function 2-proj-timestamp-bitstring-bitstring-tuple the attacker may obtain h(id2b(ID_U[])) in phase 1.
+attacker_bitstring_p1(h(id2b(ID_U[]))).
+
+5. By 1, the attacker may know (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) in phase 1.
+Using the function 1-proj-timestamp-bitstring-bitstring-tuple the attacker may obtain T1_1 in phase 1.
+attacker_timestamp_p1(T1_1).
+
+6. By 5, the attacker may know T1_1 in phase 1.
+By 4, the attacker may know h(id2b(ID_U[])) in phase 1.
+By 2, the attacker may know ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))) in phase 1.
+Using the function timestamp-bitstring-bitstring-tuple the attacker may obtain (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) in phase 1.
+attacker_bitstring_p1((T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1)))))).
+
+7. The message (T1_1,h(id2b(ID_U[])),ae_enc(h(concat(puf_gen(id2b(ID_U[]),Ch_u[]),hdk1_u[])),xor(h(id2b(ID_U[])),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))))) that the attacker may have in phase 1 by 6 may be received at input {65}.
+The event GWAuthISD(ID_G[],SID[]) (with occurrence name @occ83_1) may be executed at {83}.
+So the message (T2_1,ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1))) may be sent to the attacker in phase 1 at output {84}.
+attacker_bitstring_p1((T2_1,ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1)))).
+
+8. By 7, the attacker may know (T2_1,ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1))) in phase 1.
+Using the function 2-proj-timestamp-bitstring-tuple the attacker may obtain ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1)) in phase 1.
+attacker_bitstring_p1(ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1))).
+
+9. By 7, the attacker may know (T2_1,ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1))) in phase 1.
+Using the function 1-proj-timestamp-bitstring-tuple the attacker may obtain T2_1 in phase 1.
+attacker_timestamp_p1(T2_1).
+
+10. By 9, the attacker may know T2_1 in phase 1.
+By 8, the attacker may know ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1)) in phase 1.
+Using the function timestamp-bitstring-tuple the attacker may obtain (T2_1,ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1))) in phase 1.
+attacker_bitstring_p1((T2_1,ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1)))).
+
+11. The message (T2_1,ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1))) that the attacker may have in phase 1 by 10 may be received at input {92}.
+So event ISDAuthGW(SID[],ID_G[]) may be executed at {96} in session @sid_3.
+end(@occ96_2,ISDAuthGW(SID[],ID_G[])).
+
+12. By 11, end(@occ96_2,ISDAuthGW(SID[],ID_G[])).
+The goal is reached, represented in the following fact:
+end(@occ96_2,ISDAuthGW(SID[],ID_G[])).
+
+13. The message (T2_1,ae_enc(h(concat(puf_gen(id2b(SID[]),Ch_i[]),hd_i[])),xor(id2b(SID[]),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID[]),n2b(R2_1))),h(id2b(ID_U[]))),id2b(SID[])),PID_n_1))) that the attacker may have in phase 1 by 10 may be received at input {92}.
+So event ISDAuthGW(SID[],ID_G[]) may be executed at {96} in session @sid_2.
+end(@occ96_1,ISDAuthGW(SID[],ID_G[])).
+
+14. By 13, end(@occ96_1,ISDAuthGW(SID[],ID_G[])).
+The goal is reached, represented in the following fact:
+end(@occ96_1,ISDAuthGW(SID[],ID_G[])).
+
+15. By 14, end(@occ96_1,ISDAuthGW(SID[],ID_G[])).
+By 12, end(@occ96_2,ISDAuthGW(SID[],ID_G[])).
+We have @occ96_1 ≠ @occ96_2.
+The goals for injectivity are reached, combined in the following fact:
+end(@occ96_1,ISDAuthGW(SID[],ID_G[])) && end(@occ96_2,ISDAuthGW(SID[],ID_G[])).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new Ch_j: bitstring creating Ch_j_2 at {1}
+
+new hd_g: bitstring creating hd_g_1 at {2}
+
+new Ch_i: bitstring creating Ch_i_2 at {3}
+
+new hd_i: bitstring creating hd_i_1 at {4}
+
+new Ch_u: bitstring creating Ch_u_1 at {5}
+
+new hdk_u: bitstring creating hdk_u_1 at {6}
+
+new hdk1_u: bitstring creating hdk1_u_1 at {7}
+
+new R2: nonce creating R2_1 at {37} in copy a
+
+new T1: timestamp creating T1_1 at {38} in copy a
+
+event UserStarted(ID_U,SID,h(id2b(ID_U))) at {39} in copy a
+
+out(public_ch, (~M,~M_1,~M_2)) with ~M = T1_1, ~M_1 = h(id2b(ID_U)), ~M_2 = ae_enc(h(concat(puf_gen(id2b(ID_U),Ch_u_1),hdk1_u_1)),xor(h(id2b(ID_U)),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1)))) at {44} in copy a
+
+new R2: nonce creating R2_2 at {37} in copy a_1
+
+new T1: timestamp creating T1_2 at {38} in copy a_1
+
+event UserStarted(ID_U,SID,h(id2b(ID_U))) at {39} in copy a_1
+
+out(public_ch, (~M_3,~M_4,~M_5)) with ~M_3 = T1_2, ~M_4 = h(id2b(ID_U)), ~M_5 = ae_enc(h(concat(puf_gen(id2b(ID_U),Ch_u_1),hdk1_u_1)),xor(h(id2b(ID_U)),t2b(T1_2)),concat(n2b(R2_2),xor(id2b(SID),n2b(R2_2)))) at {44} in copy a_1
+
+in(public_ch, (~M,~M_1,~M_2)) with ~M = T1_1, ~M_1 = h(id2b(ID_U)), ~M_2 = ae_enc(h(concat(puf_gen(id2b(ID_U),Ch_u_1),hdk1_u_1)),xor(h(id2b(ID_U)),t2b(T1_1)),concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1)))) at {65} in copy a_2
+
+event GWStarted(ID_G,ID_U) at {72} in copy a_2
+
+event GWAuthUser(ID_G,ID_U) at {73} in copy a_2
+
+new R3: nonce creating R3_1 at {75} in copy a_2
+
+new T2: timestamp creating T2_1 at {76} in copy a_2
+
+new PID_n: bitstring creating PID_n_1 at {77} in copy a_2
+
+event GWAuthISD(ID_G,SID) at {83} in copy a_2
+
+out(public_ch, (~M_6,~M_7)) with ~M_6 = T2_1, ~M_7 = ae_enc(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1)),xor(id2b(SID),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1)) at {84} in copy a_2
+
+in(public_ch, (~M_6,~M_7)) with ~M_6 = T2_1, ~M_7 = ae_enc(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1)),xor(id2b(SID),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1)) at {92} in copy a_3
+
+event ISDStarted(SID) at {95} in copy a_3
+
+event ISDAuthGW(SID,ID_G) at {96} in copy a_3 (goal)
+
+new R4: nonce creating R4_1 at {97} in copy a_3
+
+new T3: timestamp creating T3_1 at {98} in copy a_3
+
+event ISDCompleted(SID,ID_G,concat(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),n2b(R4_1)),h(xor(xor(h(xor(xor(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),xor(xor(h(id2b(ID_G)),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1)))),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1))))),t2b(T3_1))),concat(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),n2b(R4_1))),id2b(SID)))) at {106} in copy a_3
+
+out(public_ch, (~M_8,~M_9,~M_10)) with ~M_8 = T3_1, ~M_9 = ae_enc(h(xor(xor(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),xor(xor(h(id2b(ID_G)),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1)))),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1))))),t2b(T3_1))),h(h(xor(xor(h(xor(xor(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),xor(xor(h(id2b(ID_G)),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1)))),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1))))),t2b(T3_1))),concat(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),n2b(R4_1))),id2b(SID)))),concat(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),n2b(R4_1))), ~M_10 = h(h(xor(xor(h(xor(xor(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),xor(xor(h(id2b(ID_G)),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1)))),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1))))),t2b(T3_1))),concat(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),n2b(R4_1))),id2b(SID)))) at {107} in copy a_3
+
+event SK_ISD_contains(h(xor(xor(h(xor(xor(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),xor(xor(h(id2b(ID_G)),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1)))),h(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1))))),t2b(T3_1))),concat(concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1),n2b(R4_1))),id2b(SID)))) at {109} in copy a_3
+
+in(public_ch, (~M_6,~M_7)) with ~M_6 = T2_1, ~M_7 = ae_enc(h(concat(puf_gen(id2b(SID),Ch_i_2),hd_i_1)),xor(id2b(SID),t2b(T2_1)),concat3(n2b(R3_1),xor(xor(concat(n2b(R2_1),xor(id2b(SID),n2b(R2_1))),h(id2b(ID_U))),id2b(SID)),PID_n_1)) at {92} in copy a_4
+
+event ISDStarted(SID) at {95} in copy a_4
+
+event ISDAuthGW(SID,ID_G) at {96} in copy a_4 (goal)
+
+The event ISDAuthGW(SID,ID_G) is executed at {96} in copy a_3.
+The event ISDAuthGW(SID,ID_G) is executed at {96} in copy a_4.
+A trace has been found.
+RESULT inj-event(ISDAuthGW(s,g)) ==> inj-event(GWAuthISD(g,s)) is false.
+RESULT (but event(ISDAuthGW(s,g)) ==> event(GWAuthISD(g,s)) is true.)
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not attacker_bitstring_p2(PW_U[]) is false.
+
+Query not attacker_identity_p2(ID_U[]) is true.
+
+Query secret SK_U is true.
+
+Query secret SK_ISD is true.
+
+Query secret PID_New_Secret is true.
+
+Query inj-event(GWAuthUser(g,u)) ==> inj-event(UserStarted(u,g,h(id2b(u)))) is false.
+
+Query inj-event(UserAuthGW(u,g)) ==> inj-event(GWStarted(g,u)) is true.
+
+Query inj-event(ISDAuthGW(s,g)) ==> inj-event(GWAuthISD(g,s)) is false.
+
+--------------------------------------------------------------
+
+                                                                                                              
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/LEAF-IIoT]
+└─# 
+
+

@@ -1,0 +1,283 @@
+(* ========================================================================= *)
+(* LEAF-IIoT: Lightweight and Efficient Authentication Framework for IIoT    *)
+(* ProVerif Model for Security Verification (Version 2.06) - CLEANED         *)
+(* ========================================================================= *)
+
+set ignoreTypes = false.
+
+(* ------------------------------------------------------------------------- *)
+(* 1. CHANNELS                                                               *)
+(* ------------------------------------------------------------------------- *)
+free public_ch: channel.
+free secure_c: channel [private].
+
+(* ------------------------------------------------------------------------- *)
+(* 2. TYPES & CONSTANTS                                                      *)
+(* ------------------------------------------------------------------------- *)
+type identity.
+type key.
+type nonce.
+type mac.
+type timestamp.
+
+(* Constants *)
+free ID_U: identity [private].
+free ID_G: identity.
+free SID: identity [private].
+free PW_U: bitstring [private].
+free reg_ts: timestamp [private].
+
+(* ------------------------------------------------------------------------- *)
+(* 3. CRYPTOGRAPHIC PRIMITIVES                                               *)
+(* ------------------------------------------------------------------------- *)
+
+(* --- Hashing --- *)
+fun h(bitstring): bitstring.
+
+(* --- XOR Operation (Convergent Theory) --- *)
+fun xor(bitstring, bitstring): bitstring.
+(* We use a minimal equation to allow decryption/verification without loops *)
+equation forall x: bitstring, y: bitstring; xor(xor(x, y), y) = x.
+
+(* --- Concatenation --- *)
+fun concat(bitstring, bitstring): bitstring.
+fun concat3(bitstring, bitstring, bitstring): bitstring.
+
+(* Destructors to unpack tuples *)
+reduc forall x: bitstring, y: bitstring; unconcat_1(concat(x, y)) = x.
+reduc forall x: bitstring, y: bitstring; unconcat_2(concat(x, y)) = y.
+reduc forall x: bitstring, y: bitstring, z: bitstring; unconcat3_1(concat3(x,y,z)) = x.
+reduc forall x: bitstring, y: bitstring, z: bitstring; unconcat3_2(concat3(x,y,z)) = y.
+reduc forall x: bitstring, y: bitstring, z: bitstring; unconcat3_3(concat3(x,y,z)) = z.
+
+(* --- ASCON Authenticated Encryption --- *)
+fun ae_enc(bitstring, bitstring, bitstring): bitstring.
+reduc forall k: bitstring, ad: bitstring, m: bitstring;
+    ae_dec(k, ad, ae_enc(k, ad, m)) = m.
+
+(* --- PUF Model --- *)
+fun puf_gen(bitstring, bitstring): bitstring.
+
+(* --- Type Conversions --- *)
+fun n2b(nonce): bitstring [data].
+fun t2b(timestamp): bitstring [data].
+fun id2b(identity): bitstring [data].
+fun k2b(key): bitstring [data].
+
+(* ------------------------------------------------------------------------- *)
+(* 4. EVENTS                                                                 *)
+(* ------------------------------------------------------------------------- *)
+event UserStarted(identity, identity, bitstring).
+event UserAuthGW(identity, identity).
+event UserCompleted(identity, identity, bitstring, bitstring).
+
+event GWStarted(identity, identity).
+event GWAuthUser(identity, identity).
+event GWAuthISD(identity, identity).
+
+event ISDStarted(identity).
+event ISDAuthGW(identity, identity).
+event ISDCompleted(identity, identity, bitstring, bitstring).
+
+(* ------------------------------------------------------------------------- *)
+(* 5. SECURITY QUERIES                                                       *)
+(* ------------------------------------------------------------------------- *)
+
+query attacker(PW_U).
+query attacker(ID_U).
+query secret SK_U.
+query secret SK_ISD.
+query secret PID_New_Secret.
+
+(* Authentication Properties *)
+query u: identity, g: identity; inj-event(GWAuthUser(g, u)) ==> inj-event(UserStarted(u, g, h(id2b(u)))).
+query u: identity, g: identity; inj-event(UserAuthGW(u, g)) ==> inj-event(GWStarted(g, u)).
+query s: identity, g: identity; inj-event(ISDAuthGW(s, g)) ==> inj-event(GWAuthISD(g, s)).
+
+(* ------------------------------------------------------------------------- *)
+(* 6. PROCESS MACROS                                                         *)
+(* ------------------------------------------------------------------------- *)
+
+(* --- USER PROCESS --- *)
+let ProcessUser(Uid: identity, Pwd: bitstring, Bio: bitstring, Ch_uk: bitstring,
+                S_id: identity, G_id: identity, init_PID: bitstring,
+                hdk: bitstring, hdk1: bitstring, stored_Ca: bitstring) =
+
+    (* Step 0: Local Verification *)
+    let Bk_star = h(concat(Bio, hdk)) in
+    let A1_star = h(concat3(id2b(Uid), Pwd, Bk_star)) in
+    (* Verify Ca using A1_star as key *)
+    let Pa = ae_dec(A1_star, h(t2b(reg_ts)), stored_Ca) in
+
+    (* Step 1: Login *)
+    let Res_a = puf_gen(id2b(Uid), Ch_uk) in
+    let Bk1 = h(concat(Res_a, hdk1)) in
+
+    new R2: nonce;
+    new T1: timestamp;
+
+    event UserStarted(Uid, S_id, init_PID);
+
+    (* P2 = R2 || (SID ^ R2) *)
+    let P2 = concat(n2b(R2), xor(id2b(S_id), n2b(R2))) in
+    
+    (* Ad2 = PID ^ T1 *)
+    let Ad2 = xor(init_PID, t2b(T1)) in
+
+    let C_bc_MAC2 = ae_enc(Bk1, Ad2, P2) in
+    let M1 = (T1, init_PID, C_bc_MAC2) in
+
+    out(public_ch, M1);
+
+    (* Step 4: User Finalization *)
+    in(public_ch, (in_T3: timestamp, in_Cgh_MAC4: bitstring, in_Ad6: bitstring));
+
+    (* We derive K2 based on the expected values *)
+    let x_term = xor(xor(xor(xor(n2b(R2), init_PID), h(id2b(G_id))), id2b(S_id)), t2b(in_T3)) in
+    let K2 = h(x_term) in
+
+    (* Try to decrypt M3 *)
+    let P4 = ae_dec(K2, in_Ad6, in_Cgh_MAC4) in
+
+    let SK_u = h(xor(xor(K2, P4), id2b(S_id))) in
+
+    if in_Ad6 = h(SK_u) then
+        event UserAuthGW(Uid, G_id);
+        event UserCompleted(Uid, S_id, P4, SK_u);
+        let SK_U = SK_u in
+        let PID_New_Secret = P4 in
+        0.
+
+(* --- GATEWAY PROCESS --- *)
+let ProcessGateway(G_id: identity, Ch_j: bitstring, hd: bitstring,
+                   U_id: identity, S_id: identity,
+                   reg_Cu: bitstring, reg_Cd: bitstring) =
+
+    let Res_j = puf_gen(id2b(G_id), Ch_j) in
+    let K_GW = h(concat(Res_j, hd)) in
+
+    (* Step 2: Gateway Receipt *)
+    in(public_ch, (in_T1: timestamp, in_PID: bitstring, in_Ct_User: bitstring));
+
+    let Bk1_rec = ae_dec(K_GW, h(t2b(reg_ts)), reg_Cu) in
+    let Ad3 = xor(in_PID, t2b(in_T1)) in
+    
+    let P2_rec = ae_dec(Bk1_rec, Ad3, in_Ct_User) in
+
+    (* Unpack P2 to check SID *)
+    let R2_rec = unconcat_1(P2_rec) in
+    let Masked_SID = unconcat_2(P2_rec) in
+    
+    (* Verify SID: (SID ^ R2) ^ R2 should be SID *)
+    if xor(Masked_SID, R2_rec) = id2b(S_id) then
+
+        event GWStarted(G_id, U_id);
+        event GWAuthUser(G_id, U_id);
+
+        let Bkd_rec = ae_dec(K_GW, h(t2b(reg_ts)), reg_Cd) in
+
+        new R3: nonce;
+        new T2: timestamp;
+        new PID_n: bitstring;
+
+        (* Gateway constructs P3 *)
+        let x_mid = xor(xor(P2_rec, in_PID), id2b(S_id)) in
+        let P3 = concat3(n2b(R3), x_mid, PID_n) in
+
+        let Ad4 = xor(id2b(S_id), t2b(T2)) in
+        let C_def_MAC3 = ae_enc(Bkd_rec, Ad4, P3) in
+
+        let M2 = (T2, C_def_MAC3) in
+
+        event GWAuthISD(G_id, S_id);
+        out(public_ch, M2);
+        0
+
+    else 0.
+
+(* --- ISD PROCESS --- *)
+let ProcessISD(S_id: identity, Ch_i: bitstring, hdi: bitstring,
+               G_id: identity, stored_Z: bitstring) =
+
+    let Res_i = puf_gen(id2b(S_id), Ch_i) in
+    let Bkd = h(concat(Res_i, hdi)) in
+
+    in(public_ch, (in_T2: timestamp, in_Ct_GW: bitstring));
+
+    let Ad5 = xor(id2b(S_id), t2b(in_T2)) in
+    let P3_rec = ae_dec(Bkd, Ad5, in_Ct_GW) in
+
+    event ISDStarted(S_id);
+    event ISDAuthGW(S_id, G_id);
+
+    new R4: nonce;
+    new T3: timestamp;
+    
+    (* Reconstruct derivation logic *)
+    let derived_SIDj = xor(stored_Z, h(Bkd)) in
+    
+    let K1 = h(xor(xor(P3_rec, derived_SIDj), t2b(T3))) in
+
+    let P4_gen = concat(P3_rec, n2b(R4)) in
+
+    let SK_i = h(xor(xor(K1, P4_gen), id2b(S_id))) in
+    let Ad6 = h(SK_i) in
+
+    let C_gh_MAC4 = ae_enc(K1, Ad6, P4_gen) in
+
+    let M3 = (T3, C_gh_MAC4, Ad6) in
+
+    event ISDCompleted(S_id, G_id, P4_gen, SK_i);
+
+    out(public_ch, M3);
+    let SK_ISD = SK_i in
+    0.
+
+(* ------------------------------------------------------------------------- *)
+(* 7. MAIN PROCESS                                                           *)
+(* ------------------------------------------------------------------------- *)
+process
+    (* Setup Variables *)
+    new Ch_j: bitstring; new hd_g: bitstring;
+    new Ch_i: bitstring; new hd_i: bitstring;
+    new Ch_u: bitstring; new hdk_u: bitstring; new hdk1_u: bitstring;
+
+    (* Registration Simulation *)
+    let Res_j = puf_gen(id2b(ID_G), Ch_j) in
+    let K_GW = h(concat(Res_j, hd_g)) in
+
+    let Res_i = puf_gen(id2b(SID), Ch_i) in
+    let Bkd = h(concat(Res_i, hd_i)) in
+    let Cd_reg = ae_enc(K_GW, h(t2b(reg_ts)), Bkd) in
+    let Z_val = xor(h(id2b(ID_G)), h(Bkd)) in
+
+    let Res_a = puf_gen(id2b(ID_U), Ch_u) in
+    let Bk1 = h(concat(Res_a, hdk1_u)) in
+    let Cu_reg = ae_enc(K_GW, h(t2b(reg_ts)), Bk1) in
+
+    let Bio_u = h(PW_U) in
+    let Bk_star = h(concat(Bio_u, hdk_u)) in
+    let A1 = h(concat3(id2b(ID_U), PW_U, Bk_star)) in
+    let PID_init = h(id2b(ID_U)) in
+
+    let Pa_blob = concat(Ch_u, PID_init) in
+    let Ca_card = ae_enc(A1, h(t2b(reg_ts)), Pa_blob) in
+
+    (
+      (* Phase 1: Normal Execution *)
+      phase 1;
+      (!ProcessUser(ID_U, PW_U, Bio_u, Ch_u, SID, ID_G, PID_init, hdk_u, hdk1_u, Ca_card)) |
+      (!ProcessGateway(ID_G, Ch_j, hd_g, ID_U, SID, Cu_reg, Cd_reg)) |
+      (!ProcessISD(SID, Ch_i, hd_i, ID_G, Z_val))
+
+      |
+
+      (* Phase 2: PFS / Insider Attack *)
+      (
+        phase 2;
+        out(public_ch, (K_GW, PW_U));
+        0
+      )
+    )
+
+
