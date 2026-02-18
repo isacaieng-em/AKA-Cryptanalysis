@@ -1,0 +1,262 @@
+(* ========================================================================== *)
+(*   ProVerif Code for RePUF-IIoT Protocol Analysis (Fixed Equations)         *)
+(*   Targeting Vulnerabilities: AEAD Misuse, Forward Secrecy, Auth            *)
+(* ========================================================================== *)
+
+set ignoreTypes = true. (* Enable type laxity for XOR operations *)
+
+(* -------------------------------------------------------------------------- *)
+(* 1. Cryptographic Primitives                                                *)
+(* -------------------------------------------------------------------------- *)
+
+(* --- Simple XOR Model (Linear, Non-Commutative for Stability) --- *)
+(* We define XOR such that x ^ (x ^ y) cancels out x. 
+   We will rely on strict ordering in the code to ensure cancellation works. *)
+fun xor(bitstring, bitstring): bitstring.
+equation forall x:bitstring, y:bitstring; xor(x, xor(x, y)) = y.
+
+(* Types *)
+type key.
+type nonce.
+type id.
+type timestamp.
+
+(* Hashing *)
+fun H(bitstring): bitstring.
+
+(* PUF Modeling: RO = puf(CH) *)
+fun puf(bitstring): bitstring.
+
+(* TinyJAMBU AEAD Modeling (VULNERABLE AS PER PAPER)
+   Modeled deterministically: E(Key, AD, Plaintext). 
+   No explicit Nonce input in the function signature captures the flaw. *)
+fun aead_enc(bitstring, bitstring, bitstring): bitstring.
+fun aead_dec(bitstring, bitstring, bitstring): bitstring.
+
+(* Decryption Success Equation *)
+equation forall k:bitstring, ad:bitstring, p:bitstring;
+    aead_dec(k, ad, aead_enc(k, ad, p)) = p.
+
+(* Standard Encryption (for Secrecy Check) *)
+fun senc(bitstring, bitstring): bitstring.
+reduc forall k:bitstring, m:bitstring; sdec(k, senc(k, m)) = m.
+
+(* Type Conversion Helpers *)
+fun nonce_to_bs(nonce): bitstring [data].
+fun time_to_bs(timestamp): bitstring [data].
+fun id_to_bs(id): bitstring [data].
+
+(* Concatenation Helpers *)
+fun concat(bitstring, bitstring): bitstring.
+fun decomp1(bitstring): bitstring.
+fun decomp2(bitstring): bitstring.
+equation forall a:bitstring, b:bitstring; decomp1(concat(a,b)) = a.
+equation forall a:bitstring, b:bitstring; decomp2(concat(a,b)) = b.
+
+(* -------------------------------------------------------------------------- *)
+(* 2. Events & Security Properties                                            *)
+(* -------------------------------------------------------------------------- *)
+
+event DeviceStarts(id, id).          
+event DeviceEnds(id, id, bitstring). 
+event ServerStarts(id, id).          
+event ServerEnds(id, id, bitstring). 
+
+free secret_payload: bitstring [private].
+
+(* Queries *)
+
+(* B1. Session Key Secrecy *)
+query attacker(secret_payload).
+
+(* A1/A4/A5. Authentication *)
+query d:id, s:id, k:bitstring; inj-event(ServerEnds(s, d, k)) ==> inj-event(DeviceStarts(d, s)).
+
+(* B3. Perfect Forward Secrecy *)
+query attacker(secret_payload) phase 1.
+
+(* F1. Privacy *)
+query attacker(new_ID_i).
+
+(* -------------------------------------------------------------------------- *)
+(* 3. Global Constants & Channels                                             *)
+(* -------------------------------------------------------------------------- *)
+
+free c: channel.              
+const ID_m: id.               
+free new_ID_i: id [private].  
+
+(* -------------------------------------------------------------------------- *)
+(* 4. Protocol Processes                                                      *)
+(* -------------------------------------------------------------------------- *)
+
+(* --- IoT Device Process --- *)
+let ProcessDevice(IDi: id, IDm: id, CHi: bitstring, CHdi: bitstring, TIDi: bitstring, C1: bitstring) =
+    
+    (* --- Phase 3: AKE (Online) --- *)
+    
+    (* Step AKE-1 *)
+    new R1: nonce;
+    new T1: timestamp;
+    
+    (* 1. Compute RO1 locally *)
+    let RO1 = puf(CHi) in
+    
+    (* 2. Decrypt C1 to recover A *)
+    let plain_creds = aead_dec(RO1, TIDi, C1) in 
+    let A_secret = decomp1(plain_creds) in
+    let check_ID = decomp2(plain_creds) in
+    
+    if check_ID = id_to_bs(IDi) then
+    
+    event DeviceStarts(IDi, IDm);
+
+    (* 6. Compute W1. Order: T1 ^ (R1 ^ (IDi ^ TIDi)) *)
+    let W1 = xor(time_to_bs(T1), xor(nonce_to_bs(R1), xor(id_to_bs(IDi), TIDi))) in
+    
+    (* 7. Encrypt Payload: E_A(W1, A || IDi) *)
+    let payload_plain = concat(A_secret, id_to_bs(IDi)) in
+    let C_payload = aead_enc(A_secret, W1, payload_plain) in
+    
+    (* 8. Send M1 *)
+    out(c, (T1, TIDi, R1, C_payload));
+    
+    (* Step AKE-4: Receive M2 *)
+    in(c, (rec_T2: timestamp, rec_W3: bitstring, rec_APn: bitstring));
+    
+    (* 2. Recover CHdi' 
+       Server sent W3 = R1 ^ (C_payload ^ CHdi). 
+       We peel R1, then C_payload.
+    *)
+    let tmp_peel1 = xor(nonce_to_bs(R1), rec_W3) in
+    let CHdi_prime = xor(C_payload, tmp_peel1) in
+    
+    (* 3. Compute PUF Response *)
+    let RO_prime = puf(CHdi_prime) in
+    
+    (* 4. Re-compute Key_e *)
+    let Key_e = xor(RO_prime, C_payload) in
+    
+    (* 5. Verify Tag/Decrypt M2 *)
+    let ver_plain = aead_dec(Key_e, rec_W3, rec_APn) in
+    let ver_A = decomp1(ver_plain) in
+    let ver_ID = decomp2(ver_plain) in
+    
+    if ver_A = A_secret then
+    if ver_ID = id_to_bs(IDi) then
+    
+    (* 7. Generate T3 *)
+    new T3: timestamp;
+    
+    (* 8. Compute Session Key SK *)
+    let SK = H((rec_APn, A_secret, id_to_bs(IDi), Key_e, rec_T2, T3)) in
+    
+    (* 9. Next Challenge/Response *)
+    let CHdi_new = H(rec_APn) in 
+    let ROn = puf(CHdi_new) in
+    
+    (* 12. Create Confirmation M3 *)
+    let W4 = CHdi_new in
+    let C_o = aead_enc(SK, W4, ROn) in
+    
+    out(c, (T3, C_o));
+    
+    event DeviceEnds(IDi, IDm, SK);
+    
+    (* SECRECY CHALLENGE *)
+    if IDi = new_ID_i then
+       out(c, senc(SK, secret_payload));
+    
+    (* FORWARD SECRECY TEST: Leak secrets in Phase 1 *)
+    phase 1;
+    out(c, (CHi, TIDi, C1, CHdi)).
+
+
+(* --- MES (Server) Process --- *)
+let ProcessMES(IDm: id, KeyM: bitstring, CHs: bitstring, A_reg: bitstring, CHdi_db: bitstring) =
+    
+    (* Server Setup *)
+    let ROm = puf(CHs) in
+    let Keys = xor(ROm, KeyM) in
+
+    (* Step AKE-2: Receive M1 *)
+    in(c, (rec_T1: timestamp, rec_TIDi: bitstring, rec_R1: nonce, rec_Cpayload: bitstring));
+    
+    event ServerStarts(IDm, new_ID_i); 
+
+    (* 7. Re-compute W2. Order: T1 ^ (R1 ^ (IDi ^ TIDi)) *)
+    (* Matches Device construction exactly *)
+    let W2 = xor(time_to_bs(rec_T1), xor(nonce_to_bs(rec_R1), xor(id_to_bs(new_ID_i), rec_TIDi))) in
+    
+    (* 8. Verify Payload *)
+    let check_plain = concat(A_reg, id_to_bs(new_ID_i)) in
+    let check_C = aead_enc(A_reg, W2, check_plain) in
+    
+    if rec_Cpayload = check_C then
+    
+    (* Step AKE-3: Send M2 *)
+    new T2: timestamp;
+    
+    (* 2. Ephemeral Key *)
+    let RO_db = puf(CHdi_db) in
+    let Key_e_serv = xor(RO_db, rec_Cpayload) in
+    
+    (* 3. W3. Order: R1 ^ (C_payload ^ CHdi) *)
+    (* This structure allows Device to peel R1 first, then C_payload. *)
+    let W3 = xor(nonce_to_bs(rec_R1), xor(rec_Cpayload, CHdi_db)) in
+    
+    (* 4. Encrypt M2 *)
+    let resp_plain = concat(A_reg, id_to_bs(new_ID_i)) in
+    let C_resp = aead_enc(Key_e_serv, W3, resp_plain) in
+    
+    out(c, (T2, W3, C_resp));
+    
+    (* Step AKE-5: Final Verification *)
+    in(c, (rec_T3: timestamp, rec_Co: bitstring));
+    
+    (* 3. Compute SK *)
+    let SK_serv = H((C_resp, A_reg, id_to_bs(new_ID_i), Key_e_serv, T2, rec_T3)) in
+    
+    (* 4. Verify M3 *)
+    let CHdi_new_serv = H(C_resp) in
+    let W5 = CHdi_new_serv in
+    
+    let dec_RO = aead_dec(SK_serv, W5, rec_Co) in
+    
+    event ServerEnds(IDm, new_ID_i, SK_serv);
+    
+    (* Phase 1 Leakage *)
+    phase 1;
+    out(c, (KeyM, CHs)).
+
+
+(* --- Main Process --- *)
+process
+    (* 1. Initialize Long Term Secrets *)
+    new Key_m: bitstring;
+    new CH_s: bitstring;
+    
+    (* 2. IoT Device Registration *)
+    new CH_i: bitstring;
+    new CH_di: bitstring;
+    new TID_i: bitstring;
+    
+    let RO_1 = puf(CH_i) in
+    
+    (* RA Computations *)
+    let RO_m = puf(CH_s) in
+    let Key_s = xor(RO_m, Key_m) in
+    let X = H((ID_m, Key_m, TID_i)) in
+    let A = H(X) in 
+    
+    (* Encrypt credential for Device *)
+    let payload_dev = concat(A, id_to_bs(new_ID_i)) in
+    let C1 = aead_enc(RO_1, TID_i, payload_dev) in 
+    
+    (* 3. Start Processes *)
+    (
+      (!ProcessDevice(new_ID_i, ID_m, CH_i, CH_di, TID_i, C1)) 
+      |
+      (!ProcessMES(ID_m, Key_m, CH_s, A, CH_di))
+    )
+    
