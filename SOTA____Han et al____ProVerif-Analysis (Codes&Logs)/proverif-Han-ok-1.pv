@@ -1,0 +1,203 @@
+(* ============================================================================== *)
+(*   ProVerif Code for: Han et al. IIoT Protocol Analysis                         *)
+(*   Status: FIXED (Removed non-convergent equations)                             *)
+(*   Objective: Verify KCI (A6) and Secrecy (B1)                                  *)
+(* ============================================================================== *)
+
+(* 1. CHANNELS *)
+free c: channel.
+
+(* 2. TYPES *)
+(* We use bitstring for most data to avoid type conflicts *)
+type key.
+type nonce.
+
+(* 3. CRYPTOGRAPHIC PRIMITIVES *)
+
+(* Symmetric Encryption *)
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; sdec(senc(m, k), k) = m.
+
+(* Hash Function *)
+fun h(bitstring): bitstring.
+
+(* XOR Operation *)
+(* FIXED: Removed commutativity to prevent non-convergence error *)
+fun xor(bitstring, bitstring): bitstring.
+equation forall x: bitstring, y: bitstring; xor(xor(x, y), y) = x.
+
+(* Type Converters *)
+fun k2b(key): bitstring [data].
+fun n2b(nonce): bitstring [data].
+fun b2k(bitstring): key [data].
+
+(* Math Abstraction *)
+fun mult_gamma(bitstring): bitstring.
+
+(* 4. CONSTANTS & DATABASE *)
+const ID_GWN: bitstring.
+const ID_SD: bitstring.
+const ID_U: bitstring.
+
+(* Database mapping User Hash (Ei) to Shared Key *)
+table database(bitstring, key).
+
+(* 5. EVENTS & QUERIES *)
+
+event UserFinished(bitstring, bitstring, bitstring).   (* Ui, GWN, SessionKey *)
+event SensorFinished(bitstring, bitstring, bitstring). (* SD, GWN, SessionKey *)
+
+(* Q1: Secrecy of the Session Key *)
+(* Checks if attacker can recover SK *)
+query SK: bitstring; attacker(SK).
+
+(* Q2: Authentication (KCI Check) *)
+(* Checks if User accepts a session key that the Sensor never approved *)
+query ui: bitstring, sk: bitstring; 
+      inj-event(UserFinished(ui, ID_GWN, sk)) ==> inj-event(SensorFinished(ID_SD, ID_GWN, sk)).
+
+(* 6. PROCESS DEFINITIONS *)
+
+(* --- USER PROCESS (Ui) --- *)
+let ProcessUser(MyID: bitstring, K_GU: key) =
+    (* 0. Registration Setup *)
+    new a: bitstring;
+    let TPW = xor(h(MyID), a) in
+    let Ei = h((MyID, ID_GWN, TPW)) in
+
+    (* 1. Login Phase *)
+    new ri: nonce;
+    new T1: bitstring;
+    
+    let M1 = senc(n2b(ri), K_GU) in
+    let M2 = h((Ei, M1, ID_GWN, n2b(ri), T1)) in
+    
+    out(c, (Ei, M1, M2, T1));
+
+    (* 4. Receive from Gateway *)
+    in(c, (rec_M12: bitstring, rec_M13: bitstring, rec_M14: bitstring, rec_T4: bitstring));
+
+    (* Decrypt M12 *)
+    let (rec_rGWN: bitstring, rec_ri: bitstring, rec_M9: bitstring) = sdec(rec_M12, K_GU) in
+    
+    (* Verify Freshness *)
+    if rec_ri = n2b(ri) then
+    
+    (* 5. Receive Sensor Confirmation *)
+    in(c, rec_M16: bitstring);
+
+    (* Compute Session Key SK *)
+    let h_link = h(xor(rec_rGWN, k2b(K_GU))) in
+    let SK = h((MyID, ID_GWN, rec_rGWN, rec_M9, h_link)) in
+
+    (* Verify M16 *)
+    let calc_M16 = h((SK, ID_GWN, MyID)) in
+    
+    if rec_M16 = calc_M16 then
+        (* Logic Flaw: User accepts session *)
+        event UserFinished(MyID, ID_GWN, SK);
+        (* Leak derived SK to test secrecy query *)
+        out(c, senc(SK, K_GU)).
+
+(* --- GATEWAY PROCESS (GWN) --- *)
+let ProcessGateway(MyID: bitstring, R0: bitstring) =
+    (* 1. Receive from User *)
+    in(c, (rec_Ei: bitstring, rec_M1: bitstring, rec_M2: bitstring, rec_T1: bitstring));
+
+    (* DB Lookup *)
+    get database(=rec_Ei, k_gu) in
+    
+    let dec_ri = sdec(rec_M1, k_gu) in
+    let calc_M2 = h((rec_Ei, rec_M1, MyID, dec_ri, rec_T1)) in
+    
+    if rec_M2 = calc_M2 then
+        (* 2. Gateway -> Sensor *)
+        new rGWN: nonce;
+        new T2: bitstring;
+        
+        (* Kg = rGWN XOR R0 *)
+        let Kg_bs = xor(n2b(rGWN), R0) in
+        let Kg = b2k(Kg_bs) in
+        
+        let M4 = mult_gamma(Kg_bs) in
+        let h_link = h(xor(n2b(rGWN), k2b(k_gu))) in
+        
+        let M5 = senc((ID_U, MyID, h_link), Kg) in
+        let M6 = h((ID_U, MyID, M4, h_link, T2)) in
+        
+        out(c, (M4, M5, M6, T2));
+        
+        (* 3. Receive from Sensor *)
+        in(c, (rec_M8: bitstring, rec_T3: bitstring));
+        
+        (* 4. Gateway -> User *)
+        let S = h(n2b(rGWN)) in
+        let M9 = h((S, n2b(rGWN))) in
+        let M10 = mult_gamma(M9) in
+        let M11 = h((M9, M10)) in
+        
+        out(c, (M10, M11));
+        
+        let M12 = senc((n2b(rGWN), dec_ri, M9), k_gu) in
+        let M13 = h((ID_U, h_link, rec_T1)) in
+        new T4: bitstring;
+        
+        out(c, (M12, M13, (M12, M9, dec_ri), T4)).
+
+(* --- SENSOR PROCESS (SDj) --- *)
+let ProcessSensor(MyID: bitstring, R0: bitstring) =
+    (* 2. Receive from Gateway *)
+    in(c, (rec_M4: bitstring, rec_M5: bitstring, rec_M6: bitstring, rec_T2: bitstring));
+    
+    (* Derive Kg *)
+    let derived_Kg_bs = xor(rec_M4, R0) in
+    let derived_Kg = b2k(derived_Kg_bs) in
+    
+    (* Decrypt M5 *)
+    let (rec_id_u: bitstring, rec_id_g: bitstring, rec_h_link: bitstring) = sdec(rec_M5, derived_Kg) in
+    
+    (* Verify M6 *)
+    let calc_M6 = h((rec_id_u, rec_id_g, rec_M4, rec_h_link, rec_T2)) in
+    
+    if rec_M6 = calc_M6 then
+        (* 3. Reply *)
+        new T3: bitstring;
+        new s: nonce;
+        let M8 = senc(n2b(s), derived_Kg) in
+        out(c, (M8, T3));
+        
+        (* 4. Receive *)
+        in(c, (rec_M10: bitstring, rec_M11: bitstring));
+        
+        (* 5. Finish *)
+        let SK = h((rec_id_u, rec_id_g, rec_M4, rec_M10, rec_h_link)) in
+        let M16 = h((SK, rec_id_g, rec_id_u)) in
+        
+        event SensorFinished(MyID, rec_id_g, SK);
+        out(c, M16).
+
+(* 7. MAIN PROCESS *)
+process
+    new KEY_GWN: key;
+    new R0: bitstring;
+    
+    (* Compute Shared Key K_GU *)
+    let K_GU_bs = h((ID_U, k2b(KEY_GWN), R0)) in
+    let K_GU = b2k(K_GU_bs) in
+    
+    (* Populate DB *)
+    new a_reg: bitstring;
+    let TPW = xor(h(ID_U), a_reg) in
+    let Ei_reg = h((ID_U, ID_GWN, TPW)) in
+    insert database(Ei_reg, K_GU);
+    
+    (* --- ATTACK SCENARIO: KCI --- *)
+    (* We give the attacker the User's Key *)
+    out(c, K_GU);
+
+    (
+        (!ProcessUser(ID_U, K_GU)) |
+        (!ProcessGateway(ID_GWN, R0)) |
+        (!ProcessSensor(ID_SD, R0))
+    )
+    

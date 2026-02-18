@@ -1,0 +1,550 @@
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/Han-et-al]
+└─# proverif proverif-Han-2   
+Error: File error: proverif-Han-2: No such file or directory
+.
+                                                                                
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/Han-et-al]
+└─# proverif proverif-Han-2.pv
+Linear part: No equation.
+Convergent part:
+xor(xor(x,y),y) = x
+Completing equations...
+Completed equations:
+xor(xor(x,y),y) = x
+Process 0 (that is, the initial process):
+{1}new KEY_GWN: key;
+{2}new R0: bitstring;
+{3}let K_GU_bs: bitstring = h((ID_U,k2b(KEY_GWN),R0)) in
+{4}let K_GU: key = b2k(K_GU_bs) in
+{5}new a_reg: bitstring;
+{6}let TPW: bitstring = xor(h(ID_U),a_reg) in
+{7}let Ei_reg: bitstring = h((ID_U,ID_GWN,TPW)) in
+{8}insert database(Ei_reg,K_GU);
+{9}out(c, K_GU);
+(
+    {10}!
+    {11}let MyID: bitstring = ID_U in
+    {12}let a_reg_1: bitstring = a_reg in
+    {13}let TPW_1: bitstring = xor(h(MyID),a_reg_1) in
+    {14}let Ei: bitstring = h((MyID,ID_GWN,TPW_1)) in
+    {15}new ri: nonce;
+    {16}new T1: bitstring;
+    {17}let M1: bitstring = senc(n2b(ri),K_GU) in
+    {18}let M2: bitstring = h((Ei,M1,ID_GWN,n2b(ri),T1)) in
+    {19}event UserStarted(MyID,ID_GWN,n2b(ri));
+    {20}out(c, (Ei,M1,M2,T1));
+    {21}in(c, (rec_M12: bitstring,rec_M13: bitstring,rec_M14: bitstring,rec_T4: bitstring));
+    {22}let (rec_rGWN: bitstring,rec_ri: bitstring,rec_M9: bitstring) = sdec(rec_M12,K_GU) in
+    {23}if (rec_ri = n2b(ri)) then
+    {24}in(c, rec_M16: bitstring);
+    {25}let h_link: bitstring = h(xor(rec_rGWN,k2b(K_GU))) in
+    {26}let SK: bitstring = h((MyID,ID_GWN,rec_rGWN,rec_M9,h_link)) in
+    {27}let calc_M16: bitstring = h((SK,ID_GWN,MyID)) in
+    {28}if (rec_M16 = calc_M16) then
+    {29}event UserFinished(MyID,ID_GWN,SK)
+) | (
+    {30}!
+    {31}let R0_1: bitstring = R0 in
+    {32}let K_Master: key = KEY_GWN in
+    {33}in(c, (rec_Ei: bitstring,rec_M1: bitstring,rec_M2: bitstring,rec_T1: bitstring));
+    {54}get database(=rec_Ei,k_gu: key) in
+    {34}let dec_ri: bitstring = sdec(rec_M1,k_gu) in
+    {35}new rGWN: nonce;
+    {36}new T2: bitstring;
+    {37}let Kg_bs: bitstring = xor(n2b(rGWN),R0_1) in
+    {38}let Kg: key = b2k(Kg_bs) in
+    {39}let M4: bitstring = mult_gamma(Kg_bs) in
+    {40}let h_link_1: bitstring = h(xor(n2b(rGWN),k2b(k_gu))) in
+    {41}let M5: bitstring = senc((ID_U,ID_GWN,h_link_1),Kg) in
+    {42}let M6: bitstring = h((ID_U,ID_GWN,M4,h_link_1,T2)) in
+    {43}out(c, (M4,M5,M6,T2));
+    {44}in(c, (rec_M8: bitstring,rec_T3: bitstring));
+    {45}let S: bitstring = h(n2b(rGWN)) in
+    {46}let M9: bitstring = h((S,n2b(rGWN))) in
+    {47}let M10: bitstring = mult_gamma(M9) in
+    {48}let M11: bitstring = h((M9,M10)) in
+    {49}out(c, (M10,M11));
+    {50}let M12: bitstring = senc((n2b(rGWN),dec_ri,M9),k_gu) in
+    {51}let M13: bitstring = h((ID_U,h_link_1,rec_T1)) in
+    {52}new T4: bitstring;
+    {53}out(c, (M12,M13,(M12,M9,dec_ri),T4))
+) | (
+    {55}!
+    {56}let R0_2: bitstring = R0 in
+    {57}in(c, (rec_M4: bitstring,rec_M5: bitstring,rec_M6: bitstring,rec_T2: bitstring));
+    {58}let derived_Kg_bs: bitstring = xor(rec_M4,R0_2) in
+    {59}let derived_Kg: key = b2k(derived_Kg_bs) in
+    {60}let (rec_id_u: bitstring,rec_id_g: bitstring,rec_h_link: bitstring) = sdec(rec_M5,derived_Kg) in
+    {61}let calc_M6: bitstring = h((rec_id_u,rec_id_g,rec_M4,rec_h_link,rec_T2)) in
+    {62}if (rec_M6 = calc_M6) then
+    {63}event SensorStarted(ID_SD,rec_id_g,rec_id_u);
+    {64}new T3: bitstring;
+    {65}new s: nonce;
+    {66}let M8: bitstring = senc(n2b(s),derived_Kg) in
+    {67}out(c, (M8,T3));
+    {68}in(c, (rec_M10: bitstring,rec_M11: bitstring));
+    {69}let SK_1: bitstring = h((rec_id_u,rec_id_g,rec_M4,rec_M10,rec_h_link)) in
+    {70}let M16: bitstring = h((SK_1,rec_id_g,rec_id_u)) in
+    {71}event SensorFinished(ID_SD,rec_id_g,SK_1);
+    {72}out(c, M16)
+) | (
+    {73}phase 1;
+    {74}out(c, KEY_GWN);
+    {75}out(c, R0)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new KEY_GWN: key;
+{2}new R0: bitstring;
+{5}new a_reg: bitstring;
+{6}let TPW: bitstring = xor(h(ID_U),a_reg) in
+{7}let Ei_reg: bitstring = h((ID_U,ID_GWN,TPW)) in
+{3}let K_GU_bs: bitstring = h((ID_U,k2b(KEY_GWN),R0)) in
+{4}let K_GU: key = b2k(K_GU_bs) in
+{8}insert database(Ei_reg,K_GU);
+{9}out(c, K_GU);
+(
+    {10}!
+    {15}new ri: nonce;
+    {16}new T1: bitstring;
+    {11}let MyID: bitstring = ID_U in
+    {19}event UserStarted(MyID,ID_GWN,n2b(ri));
+    {17}let M1: bitstring = senc(n2b(ri),K_GU) in
+    {12}let a_reg_1: bitstring = a_reg in
+    {13}let TPW_1: bitstring = xor(h(MyID),a_reg_1) in
+    {14}let Ei: bitstring = h((MyID,ID_GWN,TPW_1)) in
+    {18}let M2: bitstring = h((Ei,M1,ID_GWN,n2b(ri),T1)) in
+    {20}out(c, (Ei,M1,M2,T1));
+    {21}in(c, (rec_M12: bitstring,rec_M13: bitstring,rec_M14: bitstring,rec_T4: bitstring));
+    {22}let (rec_rGWN: bitstring,rec_ri: bitstring,rec_M9: bitstring) = sdec(rec_M12,K_GU) in
+    {23}if (rec_ri = n2b(ri)) then
+    {24}in(c, rec_M16: bitstring);
+    {25}let h_link: bitstring = h(xor(rec_rGWN,k2b(K_GU))) in
+    {26}let SK: bitstring = h((MyID,ID_GWN,rec_rGWN,rec_M9,h_link)) in
+    {27}let calc_M16: bitstring = h((SK,ID_GWN,MyID)) in
+    {28}if (rec_M16 = calc_M16) then
+    {29}event UserFinished(MyID,ID_GWN,SK)
+) | (
+    {30}!
+    {33}in(c, (rec_Ei: bitstring,rec_M1: bitstring,rec_M2: bitstring,rec_T1: bitstring));
+    {54}get database(=rec_Ei,k_gu: key) in
+    {34}let dec_ri: bitstring = sdec(rec_M1,k_gu) in
+    {35}new rGWN: nonce;
+    {36}new T2: bitstring;
+    {40}let h_link_1: bitstring = h(xor(n2b(rGWN),k2b(k_gu))) in
+    {31}let R0_1: bitstring = R0 in
+    {37}let Kg_bs: bitstring = xor(n2b(rGWN),R0_1) in
+    {39}let M4: bitstring = mult_gamma(Kg_bs) in
+    {42}let M6: bitstring = h((ID_U,ID_GWN,M4,h_link_1,T2)) in
+    {38}let Kg: key = b2k(Kg_bs) in
+    {41}let M5: bitstring = senc((ID_U,ID_GWN,h_link_1),Kg) in
+    {43}out(c, (M4,M5,M6,T2));
+    {44}in(c, (rec_M8: bitstring,rec_T3: bitstring));
+    {45}let S: bitstring = h(n2b(rGWN)) in
+    {46}let M9: bitstring = h((S,n2b(rGWN))) in
+    {47}let M10: bitstring = mult_gamma(M9) in
+    {48}let M11: bitstring = h((M9,M10)) in
+    {49}out(c, (M10,M11));
+    {52}new T4: bitstring;
+    {51}let M13: bitstring = h((ID_U,h_link_1,rec_T1)) in
+    {50}let M12: bitstring = senc((n2b(rGWN),dec_ri,M9),k_gu) in
+    {53}out(c, (M12,M13,(M12,M9,dec_ri),T4))
+) | (
+    {55}!
+    {57}in(c, (rec_M4: bitstring,rec_M5: bitstring,rec_M6: bitstring,rec_T2: bitstring));
+    {56}let R0_2: bitstring = R0 in
+    {58}let derived_Kg_bs: bitstring = xor(rec_M4,R0_2) in
+    {59}let derived_Kg: key = b2k(derived_Kg_bs) in
+    {60}let (rec_id_u: bitstring,rec_id_g: bitstring,rec_h_link: bitstring) = sdec(rec_M5,derived_Kg) in
+    {61}let calc_M6: bitstring = h((rec_id_u,rec_id_g,rec_M4,rec_h_link,rec_T2)) in
+    {62}if (rec_M6 = calc_M6) then
+    {63}event SensorStarted(ID_SD,rec_id_g,rec_id_u);
+    {64}new T3: bitstring;
+    {65}new s: nonce;
+    {66}let M8: bitstring = senc(n2b(s),derived_Kg) in
+    {67}out(c, (M8,T3));
+    {68}in(c, (rec_M10: bitstring,rec_M11: bitstring));
+    {69}let SK_1: bitstring = h((rec_id_u,rec_id_g,rec_M4,rec_M10,rec_h_link)) in
+    {71}event SensorFinished(ID_SD,rec_id_g,SK_1);
+    {70}let M16: bitstring = h((SK_1,rec_id_g,rec_id_u)) in
+    {72}out(c, M16)
+) | (
+    {73}phase 1;
+    {74}out(c, KEY_GWN);
+    {75}out(c, R0)
+)
+
+-- Query not attacker_p1(SK_2) in process 1.
+Translating the process into Horn clauses...
+Completing...
+select attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))/-5000
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker(dec_ri_1)
+Selecting 0
+200 rules inserted. Base: 169 rules (73 with conclusion selected). Queue: 48 rules.
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker_p1(dec_ri_1)
+Selecting 0
+400 rules inserted. Base: 255 rules (83 with conclusion selected). Queue: 13 rules.
+Starting query not attacker_p1(SK_2)
+goal reachable: attacker_p1(SK_2) -> attacker_p1(SK_2)
+
+Derivation:
+
+1. We assume as hypothesis that
+attacker_p1(SK_2).
+
+2. By 1, attacker_p1(SK_2).
+The goal is reached, represented in the following fact:
+attacker_p1(SK_2).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new KEY_GWN: key creating KEY_GWN_1 at {1}
+
+new R0: bitstring creating R0_3 at {2}
+
+new a_reg: bitstring creating a_reg_2 at {5}
+
+insert database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))) at {8}
+
+out(c, b2k(~M)) with ~M = h((ID_U,k2b(KEY_GWN_1),R0_3)) at {9}
+
+out(c, ~M_1) with ~M_1 = KEY_GWN_1 at {74}
+
+out(c, ~M_2) with ~M_2 = R0_3 at {75}
+
+The attacker has the message a in phase 1.
+A trace has been found.
+RESULT not attacker_p1(SK_2) is false.
+-- Query not attacker_p1(SK_2) in process 1.
+Translating the process into Horn clauses...
+Completing...
+select attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))/-5000
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker(dec_ri_1)
+Selecting 0
+200 rules inserted. Base: 169 rules (73 with conclusion selected). Queue: 48 rules.
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker_p1(dec_ri_1)
+Selecting 0
+400 rules inserted. Base: 255 rules (83 with conclusion selected). Queue: 13 rules.
+Starting query not attacker_p1(SK_2)
+goal reachable: attacker_p1(SK_2) -> attacker_p1(SK_2)
+
+Derivation:
+
+1. We assume as hypothesis that
+attacker_p1(SK_2).
+
+2. By 1, attacker_p1(SK_2).
+The goal is reached, represented in the following fact:
+attacker_p1(SK_2).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new KEY_GWN: key creating KEY_GWN_1 at {1}
+
+new R0: bitstring creating R0_3 at {2}
+
+new a_reg: bitstring creating a_reg_2 at {5}
+
+insert database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))) at {8}
+
+out(c, b2k(~M)) with ~M = h((ID_U,k2b(KEY_GWN_1),R0_3)) at {9}
+
+out(c, ~M_1) with ~M_1 = KEY_GWN_1 at {74}
+
+out(c, ~M_2) with ~M_2 = R0_3 at {75}
+
+The attacker has the message a in phase 1.
+A trace has been found.
+RESULT not attacker_p1(SK_2) is false.
+-- Query not attacker_p1(ID_U) in process 1.
+Translating the process into Horn clauses...
+Completing...
+select attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))/-5000
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker(dec_ri_1)
+Selecting 0
+200 rules inserted. Base: 169 rules (73 with conclusion selected). Queue: 48 rules.
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker_p1(dec_ri_1)
+Selecting 0
+400 rules inserted. Base: 255 rules (83 with conclusion selected). Queue: 13 rules.
+Starting query not attacker_p1(ID_U)
+goal reachable: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker_p1(ID_U)
+
+Derivation:
+Abbreviations:
+rGWN_1 = rGWN[k_gu = b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))),rec_T1 = rec_T1_1,rec_M2 = rec_M2_1,rec_M1 = senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_Ei = h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),!1 = @sid]
+rGWN_2 = rGWN[k_gu = b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))),rec_T1 = rec_T1_2,rec_M2 = rec_M2_2,rec_M1 = senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_Ei = h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),!1 = @sid_1]
+T2_1 = T2[k_gu = b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))),rec_T1 = rec_T1_2,rec_M2 = rec_M2_2,rec_M1 = senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_Ei = h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),!1 = @sid_1]
+T4_1 = T4[rec_T3 = rec_T3_1,rec_M8 = rec_M8_1,k_gu = b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))),rec_T1 = rec_T1_2,rec_M2 = rec_M2_2,rec_M1 = senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_Ei = h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),!1 = @sid_1]
+T4_2 = T4[rec_T3 = rec_T3_2,rec_M8 = rec_M8_2,k_gu = b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))),rec_T1 = rec_T1_1,rec_M2 = rec_M2_1,rec_M1 = senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_Ei = h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),!1 = @sid]
+ri_1 = ri[!1 = @sid_2]
+T1_1 = T1[!1 = @sid_2]
+
+1. The message R0[] may be sent to the attacker in phase 1 at output {75}.
+attacker_p1(R0[]).
+
+2. The message b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))) may be sent to the attacker at output {9}.
+attacker(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))).
+
+3. By 2, the attacker may know b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))).
+Using the function 1-proj-b2k the attacker may obtain h((ID_U,k2b(KEY_GWN[]),R0[])).
+attacker(h((ID_U,k2b(KEY_GWN[]),R0[]))).
+
+4. By 3, the attacker may know h((ID_U,k2b(KEY_GWN[]),R0[])).
+So the attacker may know h((ID_U,k2b(KEY_GWN[]),R0[])) in phase 1.
+attacker_p1(h((ID_U,k2b(KEY_GWN[]),R0[]))).
+
+5. By 4, the attacker may know h((ID_U,k2b(KEY_GWN[]),R0[])) in phase 1.
+Using the function b2k the attacker may obtain b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))) in phase 1.
+attacker_p1(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))).
+
+6. The attacker has some term rec_T1_2.
+attacker(rec_T1_2).
+
+7. The attacker has some term rec_M2_2.
+attacker(rec_M2_2).
+
+8. The attacker has some term rec_T1_1.
+attacker(rec_T1_1).
+
+9. The attacker has some term rec_M2_1.
+attacker(rec_M2_1).
+
+10. We assume as hypothesis that
+attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))).
+
+11. The message (h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(n2b(ri_1),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(n2b(ri_1),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),ID_GWN,n2b(ri_1),T1_1)),T1_1) may be sent to the attacker at output {20}.
+attacker((h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(n2b(ri_1),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(n2b(ri_1),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),ID_GWN,n2b(ri_1),T1_1)),T1_1)).
+
+12. By 11, the attacker may know (h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(n2b(ri_1),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(n2b(ri_1),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),ID_GWN,n2b(ri_1),T1_1)),T1_1).
+Using the function 1-proj-4-tuple the attacker may obtain h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))).
+attacker(h((ID_U,ID_GWN,xor(h(ID_U),a_reg[])))).
+
+13. By 12, the attacker may know h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))).
+By 10, the attacker may know senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))).
+By 9, the attacker may know rec_M2_1.
+By 8, the attacker may know rec_T1_1.
+Using the function 4-tuple the attacker may obtain (h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_M2_1,rec_T1_1).
+attacker((h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_M2_1,rec_T1_1)).
+
+14. The entry database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))) may be inserted in a table at insert {8}.
+table(database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))).
+
+15. The attacker has some term rec_T3_2.
+attacker(rec_T3_2).
+
+16. The attacker has some term rec_M8_2.
+attacker(rec_M8_2).
+
+17. By 16, the attacker may know rec_M8_2.
+By 15, the attacker may know rec_T3_2.
+Using the function 2-tuple the attacker may obtain (rec_M8_2,rec_T3_2).
+attacker((rec_M8_2,rec_T3_2)).
+
+18. The message (h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_M2_1,rec_T1_1) that the attacker may have by 13 may be received at input {33}.
+The entry database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))) that may be in a table by 14 may be read at get {54}.
+The message (rec_M8_2,rec_T3_2) that the attacker may have by 17 may be received at input {44}.
+So the message (senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((ID_U,h(xor(n2b(rGWN_1),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),rec_T1_1)),(senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h(n2b(rGWN_1)),n2b(rGWN_1))),dec_ri_1),T4_2) may be sent to the attacker at output {53}.
+attacker((senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((ID_U,h(xor(n2b(rGWN_1),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),rec_T1_1)),(senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h(n2b(rGWN_1)),n2b(rGWN_1))),dec_ri_1),T4_2)).
+
+19. By 18, the attacker may know (senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((ID_U,h(xor(n2b(rGWN_1),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),rec_T1_1)),(senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h(n2b(rGWN_1)),n2b(rGWN_1))),dec_ri_1),T4_2).
+Using the function 1-proj-4-tuple the attacker may obtain senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))).
+attacker(senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))).
+
+20. By 12, the attacker may know h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))).
+By 19, the attacker may know senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))).
+By 7, the attacker may know rec_M2_2.
+By 6, the attacker may know rec_T1_2.
+Using the function 4-tuple the attacker may obtain (h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_M2_2,rec_T1_2).
+attacker((h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_M2_2,rec_T1_2)).
+
+21. The attacker has some term rec_T3_1.
+attacker(rec_T3_1).
+
+22. The attacker has some term rec_M8_1.
+attacker(rec_M8_1).
+
+23. By 22, the attacker may know rec_M8_1.
+By 21, the attacker may know rec_T3_1.
+Using the function 2-tuple the attacker may obtain (rec_M8_1,rec_T3_1).
+attacker((rec_M8_1,rec_T3_1)).
+
+24. The message (h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_M2_2,rec_T1_2) that the attacker may have by 20 may be received at input {33}.
+The entry database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))) that may be in a table by 14 may be read at get {54}.
+The message (rec_M8_1,rec_T3_1) that the attacker may have by 23 may be received at input {44}.
+So the message (senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((ID_U,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),rec_T1_2)),(senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h(n2b(rGWN_2)),n2b(rGWN_2))),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1))))),T4_1) may be sent to the attacker at output {53}.
+attacker((senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((ID_U,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),rec_T1_2)),(senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h(n2b(rGWN_2)),n2b(rGWN_2))),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1))))),T4_1)).
+
+25. By 24, the attacker may know (senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((ID_U,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),rec_T1_2)),(senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),h((h(n2b(rGWN_2)),n2b(rGWN_2))),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1))))),T4_1).
+Using the function 1-proj-4-tuple the attacker may obtain senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))).
+attacker(senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))).
+
+26. By 25, the attacker may know senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))).
+So the attacker may know senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))) in phase 1.
+attacker_p1(senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))).
+
+27. By 26, the attacker may know senc((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))) in phase 1.
+By 5, the attacker may know b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))) in phase 1.
+Using the function sdec the attacker may obtain (n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))) in phase 1.
+attacker_p1((n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2))))).
+
+28. By 27, the attacker may know (n2b(rGWN_2),(n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))) in phase 1.
+Using the function 1-proj-3-tuple the attacker may obtain n2b(rGWN_2) in phase 1.
+attacker_p1(n2b(rGWN_2)).
+
+29. By 28, the attacker may know n2b(rGWN_2) in phase 1.
+Using the function 1-proj-n2b the attacker may obtain rGWN_2 in phase 1.
+attacker_p1(rGWN_2).
+
+30. By 29, the attacker may know rGWN_2 in phase 1.
+Using the function n2b the attacker may obtain n2b(rGWN_2) in phase 1.
+attacker_p1(n2b(rGWN_2)).
+
+31. By 30, the attacker may know n2b(rGWN_2) in phase 1.
+By 1, the attacker may know R0[] in phase 1.
+Using the function xor the attacker may obtain xor(n2b(rGWN_2),R0[]) in phase 1.
+attacker_p1(xor(n2b(rGWN_2),R0[])).
+
+32. By 31, the attacker may know xor(n2b(rGWN_2),R0[]) in phase 1.
+Using the function b2k the attacker may obtain b2k(xor(n2b(rGWN_2),R0[])) in phase 1.
+attacker_p1(b2k(xor(n2b(rGWN_2),R0[]))).
+
+33. The message (h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),senc((n2b(rGWN_1),dec_ri_1,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))),rec_M2_2,rec_T1_2) that the attacker may have by 20 may be received at input {33}.
+The entry database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg[]))),b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))) that may be in a table by 14 may be read at get {54}.
+So the message (mult_gamma(xor(n2b(rGWN_2),R0[])),senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[]))),h((ID_U,ID_GWN,mult_gamma(xor(n2b(rGWN_2),R0[])),h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),T2_1)),T2_1) may be sent to the attacker at output {43}.
+attacker((mult_gamma(xor(n2b(rGWN_2),R0[])),senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[]))),h((ID_U,ID_GWN,mult_gamma(xor(n2b(rGWN_2),R0[])),h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),T2_1)),T2_1)).
+
+34. By 33, the attacker may know (mult_gamma(xor(n2b(rGWN_2),R0[])),senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[]))),h((ID_U,ID_GWN,mult_gamma(xor(n2b(rGWN_2),R0[])),h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))),T2_1)),T2_1).
+Using the function 2-proj-4-tuple the attacker may obtain senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[]))).
+attacker(senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[])))).
+
+35. By 34, the attacker may know senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[]))).
+So the attacker may know senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[]))) in phase 1.
+attacker_p1(senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[])))).
+
+36. By 35, the attacker may know senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))),b2k(xor(n2b(rGWN_2),R0[]))) in phase 1.
+By 32, the attacker may know b2k(xor(n2b(rGWN_2),R0[])) in phase 1.
+Using the function sdec the attacker may obtain (ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))) in phase 1.
+attacker_p1((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))))).
+
+37. By 36, the attacker may know (ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))))) in phase 1.
+Using the function 1-proj-3-tuple the attacker may obtain ID_U in phase 1.
+attacker_p1(ID_U).
+
+38. By 37, attacker_p1(ID_U).
+The goal is reached, represented in the following fact:
+attacker_p1(ID_U).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new KEY_GWN: key creating KEY_GWN_1 at {1}
+
+new R0: bitstring creating R0_3 at {2}
+
+new a_reg: bitstring creating a_reg_2 at {5}
+
+insert database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))) at {8}
+
+out(c, b2k(~M)) with ~M = h((ID_U,k2b(KEY_GWN_1),R0_3)) at {9}
+
+new ri: nonce creating ri_1 at {15} in copy a
+
+new T1: bitstring creating T1_1 at {16} in copy a
+
+event UserStarted(ID_U,ID_GWN,n2b(ri_1)) at {19} in copy a
+
+out(c, (~M_1,~M_2,~M_3,~M_4)) with ~M_1 = h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))), ~M_2 = senc(n2b(ri_1),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))), ~M_3 = h((h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))),senc(n2b(ri_1),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))),ID_GWN,n2b(ri_1),T1_1)), ~M_4 = T1_1 at {20} in copy a
+
+in(c, (~M_1,~M_5,a_1,a_2)) with ~M_1 = h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))), ~M_5 = senc(a_3,b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))) at {33} in copy a_4
+
+get database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))) at {54} in copy a_4
+
+new rGWN: nonce creating rGWN_1 at {35} in copy a_4
+
+new T2: bitstring creating T2_1 at {36} in copy a_4
+
+out(c, (~M_6,~M_7,~M_8,~M_9)) with ~M_6 = mult_gamma(xor(n2b(rGWN_1),R0_3)), ~M_7 = senc((ID_U,ID_GWN,h(xor(n2b(rGWN_1),k2b(b2k(h((ID_U,k2b(KEY_GWN_1),R0_3))))))),b2k(xor(n2b(rGWN_1),R0_3))), ~M_8 = h((ID_U,ID_GWN,mult_gamma(xor(n2b(rGWN_1),R0_3)),h(xor(n2b(rGWN_1),k2b(b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))))),T2_1)), ~M_9 = T2_1 at {43} in copy a_4
+
+in(c, (a_5,a_6)) at {44} in copy a_4
+
+out(c, (~M_10,~M_11)) with ~M_10 = mult_gamma(h((h(n2b(rGWN_1)),n2b(rGWN_1)))), ~M_11 = h((h((h(n2b(rGWN_1)),n2b(rGWN_1))),mult_gamma(h((h(n2b(rGWN_1)),n2b(rGWN_1)))))) at {49} in copy a_4
+
+new T4: bitstring creating T4_1 at {52} in copy a_4
+
+out(c, (~M_12,~M_13,(~M_14,~M_15,~M_16),~M_17)) with ~M_12 = senc((n2b(rGWN_1),a_3,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))), ~M_13 = h((ID_U,h(xor(n2b(rGWN_1),k2b(b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))))),a_2)), ~M_14 = senc((n2b(rGWN_1),a_3,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))), ~M_15 = h((h(n2b(rGWN_1)),n2b(rGWN_1))), ~M_16 = a_3, ~M_17 = T4_1 at {53} in copy a_4
+
+in(c, (~M_1,~M_12,a_7,a_8)) with ~M_1 = h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))), ~M_12 = senc((n2b(rGWN_1),a_3,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))) at {33} in copy a_9
+
+get database(h((ID_U,ID_GWN,xor(h(ID_U),a_reg_2))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))) at {54} in copy a_9
+
+new rGWN: nonce creating rGWN_2 at {35} in copy a_9
+
+new T2: bitstring creating T2_2 at {36} in copy a_9
+
+out(c, (~M_18,~M_19,~M_20,~M_21)) with ~M_18 = mult_gamma(xor(n2b(rGWN_2),R0_3)), ~M_19 = senc((ID_U,ID_GWN,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN_1),R0_3))))))),b2k(xor(n2b(rGWN_2),R0_3))), ~M_20 = h((ID_U,ID_GWN,mult_gamma(xor(n2b(rGWN_2),R0_3)),h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))))),T2_2)), ~M_21 = T2_2 at {43} in copy a_9
+
+in(c, (a_10,a_11)) at {44} in copy a_9
+
+out(c, (~M_22,~M_23)) with ~M_22 = mult_gamma(h((h(n2b(rGWN_2)),n2b(rGWN_2)))), ~M_23 = h((h((h(n2b(rGWN_2)),n2b(rGWN_2))),mult_gamma(h((h(n2b(rGWN_2)),n2b(rGWN_2)))))) at {49} in copy a_9
+
+new T4: bitstring creating T4_2 at {52} in copy a_9
+
+out(c, (~M_24,~M_25,(~M_26,~M_27,(n2b(~M_28),~M_29,~M_30)),~M_31)) with ~M_24 = senc((n2b(rGWN_2),(n2b(rGWN_1),a_3,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))), ~M_25 = h((ID_U,h(xor(n2b(rGWN_2),k2b(b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))))),a_8)), ~M_26 = senc((n2b(rGWN_2),(n2b(rGWN_1),a_3,h((h(n2b(rGWN_1)),n2b(rGWN_1)))),h((h(n2b(rGWN_2)),n2b(rGWN_2)))),b2k(h((ID_U,k2b(KEY_GWN_1),R0_3)))), ~M_27 = h((h(n2b(rGWN_2)),n2b(rGWN_2))), ~M_28 = rGWN_1, ~M_29 = a_3, ~M_30 = h((h(n2b(rGWN_1)),n2b(rGWN_1))), ~M_31 = T4_2 at {53} in copy a_9
+
+out(c, ~M_32) with ~M_32 = KEY_GWN_1 at {74}
+
+out(c, ~M_33) with ~M_33 = R0_3 at {75}
+
+The attacker has the message 1-proj-3-tuple(sdec(~M_19,b2k(xor(n2b(1-proj-n2b(1-proj-3-tuple(sdec(~M_24,b2k(~M))))),~M_33)))) = ID_U in phase 1.
+A trace has been found, assuming the following hypothesis:
+The attacker has ~M_5 = senc(a_3[],b2k(h((ID_U,k2b(KEY_GWN_1[]),R0_3[]))))
+RESULT not attacker_p1(ID_U) cannot be proved.
+-- Query inj-event(UserFinished(ui,ID_GWN,sk)) ==> inj-event(SensorFinished(ID_SD,ID_GWN,sk)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+select attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))/-5000
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker(dec_ri_1)
+Selecting 0
+200 rules inserted. Base: 165 rules (71 with conclusion selected). Queue: 41 rules.
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker_p1(dec_ri_1)
+Selecting 0
+400 rules inserted. Base: 283 rules (79 with conclusion selected). Queue: 33 rules.
+Starting query inj-event(UserFinished(ui,ID_GWN,sk)) ==> inj-event(SensorFinished(ID_SD,ID_GWN,sk))
+RESULT inj-event(UserFinished(ui,ID_GWN,sk)) ==> inj-event(SensorFinished(ID_SD,ID_GWN,sk)) is true.
+-- Query inj-event(SensorFinished(ID_SD,ID_GWN,sk)) ==> inj-event(UserFinished(ui,ID_GWN,sk)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+select attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[])))))/-5000
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker(dec_ri_1)
+Selecting 0
+200 rules inserted. Base: 166 rules (72 with conclusion selected). Queue: 43 rules.
+Termination warning: attacker(senc(dec_ri_1,b2k(h((ID_U,k2b(KEY_GWN[]),R0[]))))) -> attacker_p1(dec_ri_1)
+Selecting 0
+400 rules inserted. Base: 291 rules (80 with conclusion selected). Queue: 28 rules.
+Starting query inj-event(SensorFinished(ID_SD,ID_GWN,sk)) ==> inj-event(UserFinished(ui,ID_GWN,sk))
+RESULT inj-event(SensorFinished(ID_SD,ID_GWN,sk)) ==> inj-event(UserFinished(ui,ID_GWN,sk)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not attacker_p1(SK_2) is false.
+
+Query not attacker_p1(SK_2) is false.
+
+Query not attacker_p1(ID_U) cannot be proved.
+
+Query inj-event(UserFinished(ui,ID_GWN,sk)) ==> inj-event(SensorFinished(ID_SD,ID_GWN,sk)) is true.
+
+Query inj-event(SensorFinished(ID_SD,ID_GWN,sk)) ==> inj-event(UserFinished(ui,ID_GWN,sk)) is true.
+
+--------------------------------------------------------------
+
+                                                                                
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/Han-et-al]
+└─# 
+
