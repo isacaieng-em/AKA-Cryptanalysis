@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IIoT Cryptanalysis - GitHub Repository</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: auto; padding: 20px; background-color: #f4f7f6; }
+        h1 { color: #003366; border-bottom: 2px solid #003366; padding-bottom: 10px; }
+        h2 { color: #00509d; margin-top: 30px; }
+        .folder-box { background: white; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .folder-title { font-weight: bold; color: #d9534f; font-size: 1.1em; }
+        ul { list-style-type: none; padding-left: 20px; }
+        li::before { content: "📄 "; }
+        a { color: #337ab7; text-decoration: none; }
+        a:hover { text-decoration: underline; color: #23527c; }
+        .badge { background: #003366; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+
+    <h1>IIoT AKA Cryptanalysis & Robust Protocol Design</h1>
+    <p>Official Repository for formal verification of IIoT Authentication Protocols.</p>
+
+    <h2>📁 Repository Hierarchical Directory</h2>
+
+    <!-- PROPOSED SCHEME -->
+    <div class="folder-box">
+        <div class="folder-title">Ours: Proposed Scheme (Robust IIoT-AKA)</div>
+        <p><span class="badge">Category A, B, C</span> Automated models proving secrecy, KCI resistance, and rotation integrity.</p>
+        <ul>
+            <li><a href="./Ours____ProposedScheme____ProVerif-Analysis (Codes&Logs)/A.pv">A.pv</a> (Standard Secrecy Model)</li>
+            <li><a href="./Ours____ProposedScheme____ProVerif-Analysis (Codes&Logs)/B.pv">B.pv</a> (KCI & Insider Model)</li>
+            <li><a href="./Ours____ProposedScheme____ProVerif-Analysis (Codes&Logs)/C.pv">C.pv</a> (Rotation & State Model)</li>
+            <li><a href="./Ours____ProposedScheme____ProVerif-Analysis (Codes&Logs)/A-Log.txt">View Execution Logs</a></li>
+        </ul>
+    </div>
+
+    <!-- HAN ET AL -->
+    <div class="folder-box">
+        <div class="folder-title">SOTA: Han et al. [2024]</div>
+        <p>Theoretical Proof of CRT Sensor Impersonation and ProVerif Trace for KCI.</p>
+        <ul>
+            <li><a href="./SOTA____Han et al____Theoretical-Cryptanalysis/AKA-YIran-HAn.pdf">Theoretical Cryptanalysis (PDF)</a></li>
+            <li><a href="./SOTA____Han et al____ProVerif-Analysis (Codes&Logs)/proverif-Han-ok-1.pv">Attack Model (ProVerif)</a></li>
+            <li><a href="./SOTA____Han et al____ProVerif-Analysis (Codes&Logs)/proverif-Han-ok-1-LOG-1.txt">Attack Trace Log</a></li>
+        </ul>
+    </div>
+
+    <!-- LEAF & REAP -->
+    <div class="folder-box">
+        <div class="folder-title">SOTA: LEAF-IIoT & REAP-IIoT</div>
+        <ul>
+            <li><a href="./SOTA____LEAF-IIoT____Theoretical-Cryptanalysis/Theoretical Cryptanalysis of LEAF-IIoT Scheme-3.tex">LEAF-IIoT LaTeX Analysis</a></li>
+            <li><a href="./SOTA____LEAF-IIoT____ProVerif-Analysis (Codes&Logs)/LEAF-IIoT-2-OK.pv">LEAF Forward Secrecy Failure Model</a></li>
+            <li><a href="./SOTA____REAP-IIoT____ProVerif-Analysis (Codes&Logs)/proverif-REAP-IIoT-1-ok.pv">REAP Desync Attack Model</a></li>
+        </ul>
+    </div>
+
+    <!-- ERASMIS & SKAP -->
+    <div class="folder-box">
+        <div class="folder-title">SOTA: ERASMIS, SKAP & RePUF</div>
+        <ul>
+            <li><a href="./SOTA____ERASMIS____Theoretical-Cryptanalysis/ERASMIS-SAKA--13.tex">ERASMIS LaTeX Source</a></li>
+            <li><a href="./SOTA____SKAP____Theoretical-Cryptanalysis/SKAP----6.pdf">SKAP Cryptanalysis (PDF)</a></li>
+            <li><a href="./SOTA____RePUF-IIoT____ProVerif-Analysis (Codes&Logs)/ProVerif-RePUF-1-ok.pv">RePUF Identity Leak Model</a></li>
+        </ul>
+    </div>
+
+    <hr>
+    <p><em>Lead Author: Hassan Nasiraee | Repository maintained for academic transparency and reproducibility.</em></p>
+
+</body>
+</html>
