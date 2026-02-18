@@ -1,0 +1,181 @@
+(* ================================================================================= *)
+(*      MODEL A: KCI & INSIDER ATTACK VERIFICATION                                   *)
+(* ================================================================================= *)
+
+free c: channel.              
+free secure: channel [private]. 
+
+set traceDisplay = short.     
+set reconstructTrace = true.  
+
+(* --- PRIMITIVES (Same as before) --- *)
+type key.
+type skey. type pkey. type nonce. type timestamp. type identity.
+type group. type exponent. type epoch. type salt. type biokey. type biotemplate. type signature.
+
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; sdec(senc(m, k), k) = m.
+
+fun pk(skey): pkey.
+fun aenc(bitstring, pkey): bitstring.
+reduc forall m: bitstring, k: skey; adec(aenc(m, pk(k)), k) = m.
+
+fun hash(bitstring): bitstring.
+fun hmac(key, bitstring): bitstring.
+fun kdf(bitstring): key.
+fun pbkdf2(bitstring, bitstring): key.
+fun hkdf(key, bitstring): key.
+
+const g: group.
+fun exp(group, exponent): group.
+fun point2key(group): key.
+equation forall x: exponent, y: exponent; exp(exp(g, x), y) = exp(exp(g, y), x).
+
+fun Gen(bitstring): biokey.
+fun GenTemplate(bitstring): biotemplate.
+fun Rep(bitstring, biotemplate): biokey.
+
+(* Tuple helpers *)
+fun myConcat(bitstring, bitstring): bitstring.
+reduc forall x: bitstring, y: bitstring; getFirst(myConcat(x, y)) = x.
+reduc forall x: bitstring, y: bitstring; getSecond(myConcat(x, y)) = y.
+fun myConcat3(bitstring, bitstring, bitstring): bitstring.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get1of3(myConcat3(x,y,z)) = x.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get2of3(myConcat3(x,y,z)) = y.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get3of3(myConcat3(x,y,z)) = z.
+fun myConcat4(bitstring, bitstring, bitstring, bitstring): bitstring.
+reduc forall x: bitstring, y: bitstring, z: bitstring, w: bitstring; get1of4(myConcat4(x,y,z,w)) = x.
+reduc forall x: bitstring, y: bitstring, z: bitstring, w: bitstring; get2of4(myConcat4(x,y,z,w)) = y.
+reduc forall x: bitstring, y: bitstring, z: bitstring, w: bitstring; get3of4(myConcat4(x,y,z,w)) = z.
+reduc forall x: bitstring, y: bitstring, z: bitstring, w: bitstring; get4of4(myConcat4(x,y,z,w)) = w.
+
+(* Converters *)
+fun bitstring_of_key(key): bitstring [data].
+reduc forall k: key; key_of_bitstring(bitstring_of_key(k)) = k.
+fun bitstring_of_nonce(nonce): bitstring [data].
+reduc forall n: nonce; nonce_of_bitstring(bitstring_of_nonce(n)) = n.
+fun bitstring_of_timestamp(timestamp): bitstring [data].
+reduc forall t: timestamp; timestamp_of_bitstring(bitstring_of_timestamp(t)) = t.
+fun bitstring_of_identity(identity): bitstring [data].
+reduc forall i: identity; identity_of_bitstring(bitstring_of_identity(i)) = i.
+fun bitstring_of_group(group): bitstring [data].
+reduc forall g: group; group_of_bitstring(bitstring_of_group(g)) = g.
+fun bitstring_of_epoch(epoch): bitstring [data].
+fun bitstring_of_salt(salt): bitstring [data].
+
+(* --- VARIABLES --- *)
+free ID_i: identity [private]. 
+free ID_GWN: identity.
+free initial_epoch: epoch.
+table GatewayDB(identity, key, salt).
+
+(* --- EVENTS --- *)
+event beginUser(identity, identity, nonce).
+event endUser(identity, identity, nonce, key).
+event beginGateway(identity, identity, nonce).
+event endGateway(identity, identity, nonce, key).
+
+(* --- QUERIES FOR KCI & INSIDER --- *)
+
+(* KCI CHECK: 
+   If the User finishes a session, did the Gateway actually start it?
+   If this is TRUE, KCI is prevented. If FALSE, Attacker spoofed Gateway using User's PW. *)
+query x: identity, y: identity, n: nonce, k: key;
+    event(endUser(x, y, n, k)) ==> event(beginGateway(x, y, n)).
+
+(* --- PROCESSES --- *)
+let ProcessUser(id: identity, pw: bitstring, bio: bitstring, PK_GWN: pkey) =
+    in(secure, (X_i_rec: key, PID_rec: bitstring, E_curr: epoch, s_gwn: salt));
+    let BK_i = Gen(bio) in
+    let tau_i = GenTemplate(bio) in
+    let K_UG_static = pbkdf2(bitstring_of_key(X_i_rec), myConcat(bitstring_of_identity(id), bitstring_of_salt(s_gwn))) in
+    !
+    (   (* Login *)
+        new dU: exponent; let Qu = exp(g, dU) in
+        new Nu: nonce; new S: bitstring; new R: bitstring; new T1: timestamp;
+        let hmac_internal = hmac(K_UG_static, myConcat(bitstring_of_identity(id), bitstring_of_epoch(E_curr))) in
+        let plain_blob = myConcat4(bitstring_of_identity(id), R, S, myConcat(bitstring_of_epoch(E_curr), hmac_internal)) in
+        let TempID = aenc(plain_blob, PK_GWN) in
+        let mac_input_u1 = myConcat4(bitstring_of_group(Qu), bitstring_of_nonce(Nu), bitstring_of_timestamp(T1), myConcat(bitstring_of_epoch(E_curr), bitstring_of_identity(ID_GWN))) in
+        let MAC_U1 = hmac(K_UG_static, mac_input_u1) in
+        let m1_payload = myConcat4(bitstring_of_group(Qu), bitstring_of_timestamp(T1), bitstring_of_nonce(Nu), myConcat(MAC_U1, bitstring_of_epoch(E_curr))) in
+        let M1 = senc(m1_payload, K_UG_static) in
+        let Auth_U = hmac(K_UG_static, myConcat4(TempID, M1, bitstring_of_timestamp(T1), myConcat(bitstring_of_nonce(Nu), bitstring_of_epoch(E_curr)))) in
+        
+        event beginUser(id, ID_GWN, Nu);
+        out(c, (TempID, M1, Auth_U, E_curr));
+
+        in(c, (M2_rec: bitstring, Auth_G_rec: bitstring, T2_rec: timestamp));
+        let m2_dec = sdec(M2_rec, K_UG_static) in
+        let bit_Qg = get1of3(m2_dec) in
+        let bit_Ng = get2of3(m2_dec) in
+        let MAC_G1_rec = get3of3(m2_dec) in
+        let mac_g1_check = hmac(K_UG_static, myConcat4(bit_Qg, bit_Ng, bitstring_of_nonce(Nu), myConcat(bitstring_of_timestamp(T2_rec), bitstring_of_identity(id)))) in
+        
+        if mac_g1_check = MAC_G1_rec then (
+            let auth_g_check = hmac(K_UG_static, myConcat4(M2_rec, bitstring_of_timestamp(T2_rec), bitstring_of_nonce(Nu), bit_Ng)) in
+            if auth_g_check = Auth_G_rec then (
+                let shared_point = exp(group_of_bitstring(bit_Qg), dU) in
+                let nonce_hmac = hmac(K_UG_static, myConcat(bitstring_of_nonce(Nu), bit_Ng)) in
+                let sk_input = myConcat4(bitstring_of_key(point2key(shared_point)), bitstring_of_nonce(Nu), bit_Ng, myConcat3(nonce_hmac, bitstring_of_identity(id), bitstring_of_identity(ID_GWN))) in
+                let SK = kdf(sk_input) in
+                event endUser(id, ID_GWN, Nu, SK)
+            )
+        )
+    ).
+
+let ProcessGateway(SK_Dec: skey, id_reg: identity) =
+    new X_i: key; new s_gwn: salt; new pid_init: bitstring; 
+    insert GatewayDB(id_reg, X_i, s_gwn);
+    out(secure, (X_i, pid_init, initial_epoch, s_gwn)); (* Send to user via secure channel *)
+    !
+    (
+        in(c, (TempID_rec: bitstring, M1_rec: bitstring, Auth_U_rec: bitstring, E_user: epoch));
+        let plain_blob = adec(TempID_rec, SK_Dec) in
+        let id_extracted = identity_of_bitstring(get1of4(plain_blob)) in
+        get GatewayDB(=id_extracted, x_stored, s_stored) in
+        let K_UG_curr = pbkdf2(bitstring_of_key(x_stored), myConcat(bitstring_of_identity(id_extracted), bitstring_of_salt(s_stored))) in
+        let m1_dec = sdec(M1_rec, K_UG_curr) in
+        let bit_Qu = get1of4(m1_dec) in
+        let bit_T1 = get2of4(m1_dec) in
+        let bit_Nu = get3of4(m1_dec) in
+        let rest_m1 = get4of4(m1_dec) in
+        let MAC_U1_rec = getFirst(rest_m1) in
+        let mac_u1_calc = hmac(K_UG_curr, myConcat4(bit_Qu, bit_Nu, bit_T1, myConcat(bitstring_of_epoch(E_user), bitstring_of_identity(ID_GWN)))) in
+        
+        if mac_u1_calc = MAC_U1_rec then (
+            let auth_u_calc = hmac(K_UG_curr, myConcat4(TempID_rec, M1_rec, bit_T1, myConcat(bit_Nu, bitstring_of_epoch(E_user)))) in
+            if auth_u_calc = Auth_U_rec then (
+                let Nu_rec = nonce_of_bitstring(bit_Nu) in
+                event beginGateway(id_extracted, ID_GWN, Nu_rec);
+                new dG: exponent; let Qg = exp(g, dG) in
+                new Ng: nonce; new T2: timestamp;
+                let mac_g1 = hmac(K_UG_curr, myConcat4(bitstring_of_group(Qg), bitstring_of_nonce(Ng), bit_Nu, myConcat(bitstring_of_timestamp(T2), bitstring_of_identity(id_extracted)))) in
+                let m2_payload = myConcat3(bitstring_of_group(Qg), bitstring_of_nonce(Ng), mac_g1) in
+                let M2 = senc(m2_payload, K_UG_curr) in
+                let Auth_G = hmac(K_UG_curr, myConcat4(M2, bitstring_of_timestamp(T2), bit_Nu, bitstring_of_nonce(Ng))) in
+                out(c, (M2, Auth_G, T2))
+            )
+        )
+    ).
+
+(* --- MAIN --- *)
+process
+    new SK_GWN_enc: skey;
+    let PK_GWN = pk(SK_GWN_enc) in
+    
+    (* User Secrets *)
+    new PW_i: bitstring;
+    new B_i: bitstring;
+    new ID_i: identity;
+    
+    (* KCI SIMULATION: LEAK SECRETS TO ATTACKER HERE *)
+    out(c, PW_i);
+    out(c, B_i);
+    out(c, ID_i);
+    
+    (
+        ProcessUser(ID_i, PW_i, B_i, PK_GWN) | 
+        ProcessGateway(SK_GWN_enc, ID_i)
+    )
+    
