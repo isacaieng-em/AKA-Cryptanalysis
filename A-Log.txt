@@ -1,0 +1,492 @@
+                                                                                                                        
+┌──(vinod㉿vinod)-[~/myResearchPapers/AKA-IIoT(HAn-enh)/ProVerif-Code/ProVerif-Final-Files-V3-plus]
+└─$ proverif han-enh-v3-GM-3-reducedLogs-2.pv
+File "han-enh-v3-GM-3-reducedLogs-2.pv", line 100, character 14:
+Warning: identifier g rebound.
+Linear part:
+exp(exp(g,x),y) = exp(exp(g,y),x)
+Completing equations...
+Completed equations:
+exp(exp(g,x),y) = exp(exp(g,y),x)
+Convergent part: No equation.
+Process 0 (that is, the initial process):
+{1}new MasterKey: key;
+{2}new SK_GWN_enc: skey;
+{3}new SK_GWN_sign: skey;
+{4}new K_Sensor: key;
+{5}let PK_GWN: pkey = pk(SK_GWN_enc) in
+{6}let VerKey_GWN: pkey = pk(SK_GWN_sign) in
+(
+    {7}let id: identity = ID_i in
+    {8}let pw: bitstring = PW_i in
+    {9}let bio: bitstring = B_i in
+    {10}out(secure, id);
+    {11}in(secure, (X_i_rec: key,PID_rec: bitstring,E_curr: epoch,s_gwn: salt));
+    {12}let BK_i: biokey = Gen(bio) in
+    {13}let tau_i: biotemplate = GenTemplate(bio) in
+    {14}let K_UG_static: key = pbkdf2(bitstring_of_key(X_i_rec),myConcat(bitstring_of_identity(id),bitstring_of_salt(s_gwn))) in
+    {15}!
+    {16}let BK_login: biokey = Rep(bio,tau_i) in
+    {17}new dU: exponent;
+    {18}let Qu: group = exp(g,dU) in
+    {19}new Nu: nonce;
+    {20}new S: bitstring;
+    {21}new R: bitstring;
+    {22}new T1: timestamp;
+    {23}let hmac_internal: bitstring = hmac(K_UG_static,myConcat(bitstring_of_identity(id),bitstring_of_epoch(E_curr))) in
+    {24}let plain_blob: bitstring = myConcat4(bitstring_of_identity(id),R,S,myConcat(bitstring_of_epoch(E_curr),hmac_internal)) in
+    {25}let TempID: bitstring = aenc(plain_blob,PK_GWN) in
+    {26}let mac_input_u1: bitstring = myConcat4(bitstring_of_group(Qu),bitstring_of_nonce(Nu),bitstring_of_timestamp(T1),myConcat(bitstring_of_epoch(E_curr),bitstring_of_identity(ID_GWN))) in
+    {27}let MAC_U1: bitstring = hmac(K_UG_static,mac_input_u1) in
+    {28}let m1_payload: bitstring = myConcat4(bitstring_of_group(Qu),bitstring_of_timestamp(T1),bitstring_of_nonce(Nu),myConcat(MAC_U1,bitstring_of_epoch(E_curr))) in
+    {29}let M1: bitstring = senc(m1_payload,K_UG_static) in
+    {30}let Auth_U: bitstring = hmac(K_UG_static,myConcat4(TempID,M1,bitstring_of_timestamp(T1),myConcat(bitstring_of_nonce(Nu),bitstring_of_epoch(E_curr)))) in
+    {31}event beginUser(id,ID_GWN,Nu,T1);
+    {32}out(c, (TempID,M1,Auth_U,E_curr));
+    {33}in(c, (M2_rec: bitstring,Auth_G_rec: bitstring,T2_rec: timestamp));
+    {34}let m2_dec: bitstring = sdec(M2_rec,K_UG_static) in
+    {35}let bit_Qg: bitstring = get1of3(m2_dec) in
+    {36}let bit_Ng: bitstring = get2of3(m2_dec) in
+    {37}let MAC_G1_rec: bitstring = get3of3(m2_dec) in
+    {38}let Qg_real: group = group_of_bitstring(bit_Qg) in
+    {39}let Ng_rec: nonce = nonce_of_bitstring(bit_Ng) in
+    {40}let mac_g1_check: bitstring = hmac(K_UG_static,myConcat4(bit_Qg,bit_Ng,bitstring_of_nonce(Nu),myConcat(bitstring_of_timestamp(T2_rec),bitstring_of_identity(id)))) in
+    {41}if (mac_g1_check = MAC_G1_rec) then
+    {42}let auth_g_check: bitstring = hmac(K_UG_static,myConcat4(M2_rec,bitstring_of_timestamp(T2_rec),bitstring_of_nonce(Nu),bit_Ng)) in
+    {43}if (auth_g_check = Auth_G_rec) then
+    {44}let shared_point: group = exp(Qg_real,dU) in
+    {45}let nonce_hmac: bitstring = hmac(K_UG_static,myConcat(bitstring_of_nonce(Nu),bit_Ng)) in
+    {46}let sk_input: bitstring = myConcat4(bitstring_of_key(point2key(shared_point)),bitstring_of_nonce(Nu),bit_Ng,myConcat3(nonce_hmac,bitstring_of_identity(id),bitstring_of_identity(ID_GWN))) in
+    {47}let SK: key = kdf(sk_input) in
+    {48}let MAC_U2: bitstring = hmac(K_UG_static,myConcat4(bitstring_of_group(Qu),bit_Qg,bitstring_of_nonce(Nu),bit_Ng)) in
+    {49}new T3: timestamp;
+    {50}let M3: bitstring = hmac(SK,myConcat3(bitstring_of_timestamp(T3),bitstring_of_nonce(Nu),bit_Ng)) in
+    {51}event sessionKeyEstablished(id,ID_GWN,SK);
+    {52}out(c, (MAC_U2,M3,T3));
+    {53}out(c, dU);
+    {54}in(c, M4_rec: bitstring);
+    {55}event endUser(id,ID_GWN,Nu,SK,T3);
+    {56}event keyConfirmed(id,ID_GWN,SK)
+) | (
+    {57}let SK_Dec: skey = SK_GWN_enc in
+    {58}let SK_Sign: skey = SK_GWN_sign in
+    {59}let M_Key: key = MasterKey in
+    {60}let K_Sens: key = K_Sensor in
+    {61}in(secure, id_reg: identity);
+    {62}new X_i: key;
+    {63}new s_gwn_1: salt;
+    {64}let K_UG: key = pbkdf2(bitstring_of_key(X_i),myConcat(bitstring_of_identity(id_reg),bitstring_of_salt(s_gwn_1))) in
+    {65}new pid_init: bitstring;
+    {66}insert GatewayDB(id_reg,X_i,s_gwn_1);
+    {67}out(secure, (X_i,pid_init,initial_epoch,s_gwn_1));
+    {68}!
+    {69}in(c, (TempID_rec: bitstring,M1_rec: bitstring,Auth_U_rec: bitstring,E_user: epoch));
+    {70}let plain_blob_1: bitstring = adec(TempID_rec,SK_Dec) in
+    {71}let id_extracted: identity = identity_of_bitstring(get1of4(plain_blob_1)) in
+    {117}get GatewayDB(=id_extracted,x_stored: key,s_stored: salt) in
+    {72}let K_UG_curr: key = pbkdf2(bitstring_of_key(x_stored),myConcat(bitstring_of_identity(id_extracted),bitstring_of_salt(s_stored))) in
+    {73}let m1_dec: bitstring = sdec(M1_rec,K_UG_curr) in
+    {74}let bit_Qu: bitstring = get1of4(m1_dec) in
+    {75}let bit_T1: bitstring = get2of4(m1_dec) in
+    {76}let bit_Nu: bitstring = get3of4(m1_dec) in
+    {77}let rest_m1: bitstring = get4of4(m1_dec) in
+    {78}let MAC_U1_rec: bitstring = getFirst(rest_m1) in
+    {79}let Qu_rec: group = group_of_bitstring(bit_Qu) in
+    {80}let Nu_rec: nonce = nonce_of_bitstring(bit_Nu) in
+    {81}let T1_rec: timestamp = timestamp_of_bitstring(bit_T1) in
+    {82}let mac_u1_calc: bitstring = hmac(K_UG_curr,myConcat4(bit_Qu,bit_Nu,bit_T1,myConcat(bitstring_of_epoch(E_user),bitstring_of_identity(ID_GWN)))) in
+    {83}if (mac_u1_calc = MAC_U1_rec) then
+    {84}let auth_u_calc: bitstring = hmac(K_UG_curr,myConcat4(TempID_rec,M1_rec,bit_T1,myConcat(bit_Nu,bitstring_of_epoch(E_user)))) in
+    {85}if (auth_u_calc = Auth_U_rec) then
+    {86}event beginGateway(id_extracted,ID_GWN,Nu_rec,T1_rec);
+    {87}new dG: exponent;
+    {88}let Qg: group = exp(g,dG) in
+    {89}new Ng: nonce;
+    {90}new T2: timestamp;
+    {91}let mac_g1: bitstring = hmac(K_UG_curr,myConcat4(bitstring_of_group(Qg),bitstring_of_nonce(Ng),bit_Nu,myConcat(bitstring_of_timestamp(T2),bitstring_of_identity(id_extracted)))) in
+    {92}let m2_payload: bitstring = myConcat3(bitstring_of_group(Qg),bitstring_of_nonce(Ng),mac_g1) in
+    {93}let M2: bitstring = senc(m2_payload,K_UG_curr) in
+    {94}let Auth_G: bitstring = hmac(K_UG_curr,myConcat4(M2,bitstring_of_timestamp(T2),bit_Nu,bitstring_of_nonce(Ng))) in
+    {95}out(c, (M2,Auth_G,T2));
+    {96}in(c, (MAC_U2_rec: bitstring,M3_rec: bitstring,T3_rec: timestamp));
+    {97}let mac_u2_calc: bitstring = hmac(K_UG_curr,myConcat4(bit_Qu,bitstring_of_group(Qg),bit_Nu,bitstring_of_nonce(Ng))) in
+    {98}if (mac_u2_calc = MAC_U2_rec) then
+    {99}let shared_point_g: group = exp(Qu_rec,dG) in
+    {100}let nonce_hmac_g: bitstring = hmac(K_UG_curr,myConcat(bit_Nu,bitstring_of_nonce(Ng))) in
+    {101}let sk_input_g: bitstring = myConcat4(bitstring_of_key(point2key(shared_point_g)),bit_Nu,bitstring_of_nonce(Ng),myConcat3(nonce_hmac_g,bitstring_of_identity(id_extracted),bitstring_of_identity(ID_GWN))) in
+    {102}let SK_g: key = kdf(sk_input_g) in
+    {103}let m3_calc: bitstring = hmac(SK_g,myConcat3(bitstring_of_timestamp(T3_rec),bit_Nu,bitstring_of_nonce(Ng))) in
+    {104}if (m3_calc = M3_rec) then
+    {105}event keyConfirmed(id_extracted,ID_GWN,SK_g);
+    {106}new nonce_j: nonce;
+    {107}let SK_s_j: key = hkdf(SK_g,bitstring_of_nonce(nonce_j)) in
+    {108}out(c, dG);
+    {109}let m4_payload_u: bitstring = myConcat(bitstring_of_key(SK_s_j),bitstring_of_nonce(nonce_j)) in
+    {110}let M4: bitstring = senc(m4_payload_u,SK_g) in
+    {111}out(c, M4);
+    {112}let m4_payload_s: bitstring = myConcat(bitstring_of_key(SK_s_j),bitstring_of_nonce(nonce_j)) in
+    {113}let M4_sens: bitstring = senc(m4_payload_s,K_Sens) in
+    {114}event beginGatewaySensor(id_extracted,ID_SD_j,nonce_j);
+    {115}out(c, M4_sens);
+    {116}event endGateway(id_extracted,ID_GWN,Nu_rec,SK_g,T3_rec)
+) | (
+    {118}let SK_Sign_1: skey = SK_GWN_sign in
+    {119}let M_Key_1: key = MasterKey in
+    {120}new delta: bitstring;
+    {121}new next_epoch: epoch;
+    {122}let payload: bitstring = myConcat3(bitstring_of_epoch(next_epoch),hash(bitstring_of_key(M_Key_1)),delta) in
+    {123}let sig_update: signature = sign(payload,SK_Sign_1) in
+    {124}event keyRotated(next_epoch,M_Key_1);
+    {125}out(c, (next_epoch,sig_update,delta))
+) | (
+    {126}let K_Sens_1: key = K_Sensor in
+    {127}!
+    {128}in(c, M4_j: bitstring);
+    {129}let dec_payload: bitstring = sdec(M4_j,K_Sens_1) in
+    {130}let sk_rec: key = key_of_bitstring(getFirst(dec_payload)) in
+    {131}let nj_rec: nonce = nonce_of_bitstring(getSecond(dec_payload)) in
+    {134}get SensorReplayCache(=ID_SD_j,=nj_rec) in
+        0
+    else
+        {132}insert SensorReplayCache(ID_SD_j,nj_rec);
+        {133}event endSensor(ID_SD_j,ID_GWN,nj_rec,sk_rec)
+) | (
+    {135}let SK_Dec_1: skey = SK_GWN_enc in
+    {136}let SK_Sign_2: skey = SK_GWN_sign in
+    {137}let M_Key_2: key = MasterKey in
+    {138}let K_Sens_2: key = K_Sensor in
+    {139}phase 1
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new MasterKey: key;
+{2}new SK_GWN_enc: skey;
+{3}new SK_GWN_sign: skey;
+{4}new K_Sensor: key;
+(
+    {7}let id: identity = ID_i in
+    {10}out(secure, id);
+    {11}in(secure, (X_i_rec: key,PID_rec: bitstring,E_curr: epoch,s_gwn: salt));
+    {15}!
+    {17}new dU: exponent;
+    {19}new Nu: nonce;
+    {20}new S: bitstring;
+    {21}new R: bitstring;
+    {22}new T1: timestamp;
+    {31}event beginUser(id,ID_GWN,Nu,T1);
+    {18}let Qu: group = exp(g,dU) in
+    {26}let mac_input_u1: bitstring = myConcat4(bitstring_of_group(Qu),bitstring_of_nonce(Nu),bitstring_of_timestamp(T1),myConcat(bitstring_of_epoch(E_curr),bitstring_of_identity(ID_GWN))) in
+    {14}let K_UG_static: key = pbkdf2(bitstring_of_key(X_i_rec),myConcat(bitstring_of_identity(id),bitstring_of_salt(s_gwn))) in
+    {27}let MAC_U1: bitstring = hmac(K_UG_static,mac_input_u1) in
+    {28}let m1_payload: bitstring = myConcat4(bitstring_of_group(Qu),bitstring_of_timestamp(T1),bitstring_of_nonce(Nu),myConcat(MAC_U1,bitstring_of_epoch(E_curr))) in
+    {29}let M1: bitstring = senc(m1_payload,K_UG_static) in
+    {23}let hmac_internal: bitstring = hmac(K_UG_static,myConcat(bitstring_of_identity(id),bitstring_of_epoch(E_curr))) in
+    {24}let plain_blob: bitstring = myConcat4(bitstring_of_identity(id),R,S,myConcat(bitstring_of_epoch(E_curr),hmac_internal)) in
+    {5}let PK_GWN: pkey = pk(SK_GWN_enc) in
+    {25}let TempID: bitstring = aenc(plain_blob,PK_GWN) in
+    {30}let Auth_U: bitstring = hmac(K_UG_static,myConcat4(TempID,M1,bitstring_of_timestamp(T1),myConcat(bitstring_of_nonce(Nu),bitstring_of_epoch(E_curr)))) in
+    {32}out(c, (TempID,M1,Auth_U,E_curr));
+    {33}in(c, (M2_rec: bitstring,Auth_G_rec: bitstring,T2_rec: timestamp));
+    {34}let m2_dec: bitstring = sdec(M2_rec,K_UG_static) in
+    {35}let bit_Qg: bitstring = get1of3(m2_dec) in
+    {36}let bit_Ng: bitstring = get2of3(m2_dec) in
+    {37}let MAC_G1_rec: bitstring = get3of3(m2_dec) in
+    {38}let Qg_real: group = group_of_bitstring(bit_Qg) in
+    {39}let Ng_rec: nonce = nonce_of_bitstring(bit_Ng) in
+    {40}let mac_g1_check: bitstring = hmac(K_UG_static,myConcat4(bit_Qg,bit_Ng,bitstring_of_nonce(Nu),myConcat(bitstring_of_timestamp(T2_rec),bitstring_of_identity(id)))) in
+    {41}if (mac_g1_check = MAC_G1_rec) then
+    {42}let auth_g_check: bitstring = hmac(K_UG_static,myConcat4(M2_rec,bitstring_of_timestamp(T2_rec),bitstring_of_nonce(Nu),bit_Ng)) in
+    {43}if (auth_g_check = Auth_G_rec) then
+    {49}new T3: timestamp;
+    {45}let nonce_hmac: bitstring = hmac(K_UG_static,myConcat(bitstring_of_nonce(Nu),bit_Ng)) in
+    {44}let shared_point: group = exp(Qg_real,dU) in
+    {46}let sk_input: bitstring = myConcat4(bitstring_of_key(point2key(shared_point)),bitstring_of_nonce(Nu),bit_Ng,myConcat3(nonce_hmac,bitstring_of_identity(id),bitstring_of_identity(ID_GWN))) in
+    {47}let SK: key = kdf(sk_input) in
+    {51}event sessionKeyEstablished(id,ID_GWN,SK);
+    {50}let M3: bitstring = hmac(SK,myConcat3(bitstring_of_timestamp(T3),bitstring_of_nonce(Nu),bit_Ng)) in
+    {48}let MAC_U2: bitstring = hmac(K_UG_static,myConcat4(bitstring_of_group(Qu),bit_Qg,bitstring_of_nonce(Nu),bit_Ng)) in
+    {52}out(c, (MAC_U2,M3,T3));
+    {53}out(c, dU);
+    {54}in(c, M4_rec: bitstring);
+    {55}event endUser(id,ID_GWN,Nu,SK,T3);
+    {56}event keyConfirmed(id,ID_GWN,SK)
+) | (
+    {61}in(secure, id_reg: identity);
+    {62}new X_i: key;
+    {63}new s_gwn_1: salt;
+    {65}new pid_init: bitstring;
+    {66}insert GatewayDB(id_reg,X_i,s_gwn_1);
+    {67}out(secure, (X_i,pid_init,initial_epoch,s_gwn_1));
+    {68}!
+    {69}in(c, (TempID_rec: bitstring,M1_rec: bitstring,Auth_U_rec: bitstring,E_user: epoch));
+    {57}let SK_Dec: skey = SK_GWN_enc in
+    {70}let plain_blob_1: bitstring = adec(TempID_rec,SK_Dec) in
+    {71}let id_extracted: identity = identity_of_bitstring(get1of4(plain_blob_1)) in
+    {117}get GatewayDB(=id_extracted,x_stored: key,s_stored: salt) in
+    {72}let K_UG_curr: key = pbkdf2(bitstring_of_key(x_stored),myConcat(bitstring_of_identity(id_extracted),bitstring_of_salt(s_stored))) in
+    {73}let m1_dec: bitstring = sdec(M1_rec,K_UG_curr) in
+    {74}let bit_Qu: bitstring = get1of4(m1_dec) in
+    {75}let bit_T1: bitstring = get2of4(m1_dec) in
+    {76}let bit_Nu: bitstring = get3of4(m1_dec) in
+    {77}let rest_m1: bitstring = get4of4(m1_dec) in
+    {78}let MAC_U1_rec: bitstring = getFirst(rest_m1) in
+    {79}let Qu_rec: group = group_of_bitstring(bit_Qu) in
+    {80}let Nu_rec: nonce = nonce_of_bitstring(bit_Nu) in
+    {81}let T1_rec: timestamp = timestamp_of_bitstring(bit_T1) in
+    {82}let mac_u1_calc: bitstring = hmac(K_UG_curr,myConcat4(bit_Qu,bit_Nu,bit_T1,myConcat(bitstring_of_epoch(E_user),bitstring_of_identity(ID_GWN)))) in
+    {83}if (mac_u1_calc = MAC_U1_rec) then
+    {84}let auth_u_calc: bitstring = hmac(K_UG_curr,myConcat4(TempID_rec,M1_rec,bit_T1,myConcat(bit_Nu,bitstring_of_epoch(E_user)))) in
+    {85}if (auth_u_calc = Auth_U_rec) then
+    {86}event beginGateway(id_extracted,ID_GWN,Nu_rec,T1_rec);
+    {87}new dG: exponent;
+    {89}new Ng: nonce;
+    {90}new T2: timestamp;
+    {88}let Qg: group = exp(g,dG) in
+    {91}let mac_g1: bitstring = hmac(K_UG_curr,myConcat4(bitstring_of_group(Qg),bitstring_of_nonce(Ng),bit_Nu,myConcat(bitstring_of_timestamp(T2),bitstring_of_identity(id_extracted)))) in
+    {92}let m2_payload: bitstring = myConcat3(bitstring_of_group(Qg),bitstring_of_nonce(Ng),mac_g1) in
+    {93}let M2: bitstring = senc(m2_payload,K_UG_curr) in
+    {94}let Auth_G: bitstring = hmac(K_UG_curr,myConcat4(M2,bitstring_of_timestamp(T2),bit_Nu,bitstring_of_nonce(Ng))) in
+    {95}out(c, (M2,Auth_G,T2));
+    {96}in(c, (MAC_U2_rec: bitstring,M3_rec: bitstring,T3_rec: timestamp));
+    {97}let mac_u2_calc: bitstring = hmac(K_UG_curr,myConcat4(bit_Qu,bitstring_of_group(Qg),bit_Nu,bitstring_of_nonce(Ng))) in
+    {98}if (mac_u2_calc = MAC_U2_rec) then
+    {100}let nonce_hmac_g: bitstring = hmac(K_UG_curr,myConcat(bit_Nu,bitstring_of_nonce(Ng))) in
+    {99}let shared_point_g: group = exp(Qu_rec,dG) in
+    {101}let sk_input_g: bitstring = myConcat4(bitstring_of_key(point2key(shared_point_g)),bit_Nu,bitstring_of_nonce(Ng),myConcat3(nonce_hmac_g,bitstring_of_identity(id_extracted),bitstring_of_identity(ID_GWN))) in
+    {102}let SK_g: key = kdf(sk_input_g) in
+    {103}let m3_calc: bitstring = hmac(SK_g,myConcat3(bitstring_of_timestamp(T3_rec),bit_Nu,bitstring_of_nonce(Ng))) in
+    {104}if (m3_calc = M3_rec) then
+    {105}event keyConfirmed(id_extracted,ID_GWN,SK_g);
+    {106}new nonce_j: nonce;
+    {108}out(c, dG);
+    {107}let SK_s_j: key = hkdf(SK_g,bitstring_of_nonce(nonce_j)) in
+    {109}let m4_payload_u: bitstring = myConcat(bitstring_of_key(SK_s_j),bitstring_of_nonce(nonce_j)) in
+    {110}let M4: bitstring = senc(m4_payload_u,SK_g) in
+    {111}out(c, M4);
+    {114}event beginGatewaySensor(id_extracted,ID_SD_j,nonce_j);
+    {112}let m4_payload_s: bitstring = myConcat(bitstring_of_key(SK_s_j),bitstring_of_nonce(nonce_j)) in
+    {60}let K_Sens: key = K_Sensor in
+    {113}let M4_sens: bitstring = senc(m4_payload_s,K_Sens) in
+    {115}out(c, M4_sens);
+    {116}event endGateway(id_extracted,ID_GWN,Nu_rec,SK_g,T3_rec)
+) | (
+    {120}new delta: bitstring;
+    {121}new next_epoch: epoch;
+    {119}let M_Key_1: key = MasterKey in
+    {124}event keyRotated(next_epoch,M_Key_1);
+    {122}let payload: bitstring = myConcat3(bitstring_of_epoch(next_epoch),hash(bitstring_of_key(M_Key_1)),delta) in
+    {118}let SK_Sign_1: skey = SK_GWN_sign in
+    {123}let sig_update: signature = sign(payload,SK_Sign_1) in
+    {125}out(c, (next_epoch,sig_update,delta))
+) | (
+    {127}!
+    {128}in(c, M4_j: bitstring);
+    {126}let K_Sens_1: key = K_Sensor in
+    {129}let dec_payload: bitstring = sdec(M4_j,K_Sens_1) in
+    {130}let sk_rec: key = key_of_bitstring(getFirst(dec_payload)) in
+    {131}let nj_rec: nonce = nonce_of_bitstring(getSecond(dec_payload)) in
+    {134}get SensorReplayCache(=ID_SD_j,=nj_rec) in
+        0
+    else
+        {132}insert SensorReplayCache(ID_SD_j,nj_rec);
+        {133}event endSensor(ID_SD_j,ID_GWN,nj_rec,sk_rec)
+) | (
+    {139}phase 1
+)
+
+-- Weak secret PW_i in process 1.
+Translating the process into Horn clauses...
+Termination warning: v ≠ v_1 && attacker_guess(v_2,v) && attacker_guess(v_2,v_1) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_guess(v,v_2) && attacker_guess(v_1,v_2) -> bad
+Selecting 0
+select mess(secure[],id_reg_1)/-5000
+Completing...
+200 rules inserted. Base: 200 rules (100 with conclusion selected). Queue: 102 rules.
+Termination warning: v ≠ v_1 && attacker_guess(v_2,v) && attacker_guess(v_2,v_1) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_guess(v,v_2) && attacker_guess(v_1,v_2) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_p1(v) && attacker_guess(v,v_1) -> bad
+Selecting 1
+Termination warning: v ≠ v_1 && attacker_p1(v) && attacker_guess(v_1,v) -> bad
+Selecting 1
+400 rules inserted. Base: 398 rules (128 with conclusion selected). Queue: 98 rules.
+600 rules inserted. Base: 585 rules (139 with conclusion selected). Queue: 69 rules.
+Termination warning: m ≠ v && attacker(m) && attacker_guess(v,m) -> bad
+Selecting 1
+Termination warning: m ≠ v && attacker(m) && attacker_guess(m,v) -> bad
+Selecting 1
+800 rules inserted. Base: 776 rules (142 with conclusion selected). Queue: 103 rules.
+1000 rules inserted. Base: 947 rules (142 with conclusion selected). Queue: 93 rules.
+1200 rules inserted. Base: 1102 rules (142 with conclusion selected). Queue: 129 rules.
+1400 rules inserted. Base: 1269 rules (147 with conclusion selected). Queue: 157 rules.
+1600 rules inserted. Base: 1450 rules (147 with conclusion selected). Queue: 221 rules.
+1800 rules inserted. Base: 1640 rules (147 with conclusion selected). Queue: 219 rules.
+2000 rules inserted. Base: 1815 rules (147 with conclusion selected). Queue: 235 rules.
+2200 rules inserted. Base: 2010 rules (147 with conclusion selected). Queue: 180 rules.
+2400 rules inserted. Base: 2199 rules (147 with conclusion selected). Queue: 134 rules.
+2600 rules inserted. Base: 2316 rules (150 with conclusion selected). Queue: 127 rules.
+2800 rules inserted. Base: 2496 rules (154 with conclusion selected). Queue: 186 rules.
+3000 rules inserted. Base: 2696 rules (156 with conclusion selected). Queue: 233 rules.
+3200 rules inserted. Base: 2896 rules (156 with conclusion selected). Queue: 272 rules.
+3400 rules inserted. Base: 3096 rules (156 with conclusion selected). Queue: 262 rules.
+3600 rules inserted. Base: 3296 rules (156 with conclusion selected). Queue: 237 rules.
+3800 rules inserted. Base: 3476 rules (156 with conclusion selected). Queue: 213 rules.
+4000 rules inserted. Base: 3622 rules (156 with conclusion selected). Queue: 168 rules.
+4200 rules inserted. Base: 3755 rules (156 with conclusion selected). Queue: 89 rules.
+RESULT Weak secret PW_i is true.
+-- Weak secret B_i in process 1.
+Translating the process into Horn clauses...
+Termination warning: v ≠ v_1 && attacker_guess(v_2,v) && attacker_guess(v_2,v_1) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_guess(v,v_2) && attacker_guess(v_1,v_2) -> bad
+Selecting 0
+select mess(secure[],id_reg_1)/-5000
+Completing...
+200 rules inserted. Base: 200 rules (100 with conclusion selected). Queue: 102 rules.
+Termination warning: v ≠ v_1 && attacker_guess(v_2,v) && attacker_guess(v_2,v_1) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_guess(v,v_2) && attacker_guess(v_1,v_2) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_p1(v) && attacker_guess(v,v_1) -> bad
+Selecting 1
+Termination warning: v ≠ v_1 && attacker_p1(v) && attacker_guess(v_1,v) -> bad
+Selecting 1
+400 rules inserted. Base: 398 rules (128 with conclusion selected). Queue: 98 rules.
+600 rules inserted. Base: 585 rules (139 with conclusion selected). Queue: 69 rules.
+Termination warning: m ≠ v && attacker(m) && attacker_guess(v,m) -> bad
+Selecting 1
+Termination warning: m ≠ v && attacker(m) && attacker_guess(m,v) -> bad
+Selecting 1
+800 rules inserted. Base: 776 rules (142 with conclusion selected). Queue: 103 rules.
+1000 rules inserted. Base: 947 rules (142 with conclusion selected). Queue: 93 rules.
+1200 rules inserted. Base: 1102 rules (142 with conclusion selected). Queue: 129 rules.
+1400 rules inserted. Base: 1269 rules (147 with conclusion selected). Queue: 157 rules.
+1600 rules inserted. Base: 1450 rules (147 with conclusion selected). Queue: 221 rules.
+1800 rules inserted. Base: 1640 rules (147 with conclusion selected). Queue: 219 rules.
+2000 rules inserted. Base: 1815 rules (147 with conclusion selected). Queue: 235 rules.
+2200 rules inserted. Base: 2010 rules (147 with conclusion selected). Queue: 180 rules.
+2400 rules inserted. Base: 2199 rules (147 with conclusion selected). Queue: 134 rules.
+2600 rules inserted. Base: 2316 rules (150 with conclusion selected). Queue: 127 rules.
+2800 rules inserted. Base: 2496 rules (154 with conclusion selected). Queue: 186 rules.
+3000 rules inserted. Base: 2696 rules (156 with conclusion selected). Queue: 233 rules.
+3200 rules inserted. Base: 2896 rules (156 with conclusion selected). Queue: 272 rules.
+3400 rules inserted. Base: 3096 rules (156 with conclusion selected). Queue: 262 rules.
+3600 rules inserted. Base: 3296 rules (156 with conclusion selected). Queue: 237 rules.
+3800 rules inserted. Base: 3476 rules (156 with conclusion selected). Queue: 213 rules.
+4000 rules inserted. Base: 3622 rules (156 with conclusion selected). Queue: 168 rules.
+4200 rules inserted. Base: 3755 rules (156 with conclusion selected). Queue: 89 rules.
+RESULT Weak secret B_i is true.
+-- Query not (event(sessionKeyEstablished(ID_i[],ID_GWN[],sk)) && attacker_p1(sk)) in process 1.
+Translating the process into Horn clauses...
+select mess(secure[],id_reg_1)/-5000
+Completing...
+200 rules inserted. Base: 198 rules (88 with conclusion selected). Queue: 29 rules.
+400 rules inserted. Base: 369 rules (96 with conclusion selected). Queue: 30 rules.
+600 rules inserted. Base: 462 rules (106 with conclusion selected). Queue: 13 rules.
+Starting query not (event(sessionKeyEstablished(ID_i[],ID_GWN[],sk)) && attacker_p1(sk))
+RESULT not (event(sessionKeyEstablished(ID_i[],ID_GWN[],sk)) && attacker_p1(sk)) is true.
+-- Query not attacker_p1(ID_i[]) in process 1.
+Translating the process into Horn clauses...
+select mess(secure[],id_reg_1)/-5000
+Completing...
+200 rules inserted. Base: 198 rules (89 with conclusion selected). Queue: 25 rules.
+400 rules inserted. Base: 363 rules (96 with conclusion selected). Queue: 34 rules.
+600 rules inserted. Base: 466 rules (110 with conclusion selected). Queue: 9 rules.
+Starting query not attacker_p1(ID_i[])
+RESULT not attacker_p1(ID_i[]) is true.
+-- Query event(endUser(x,y,n,k,t_end)) ==> event(beginGateway(x,y,n,t_start)) in process 1.
+Translating the process into Horn clauses...
+select mess(secure[],id_reg_1)/-5000
+Completing...
+200 rules inserted. Base: 198 rules (88 with conclusion selected). Queue: 29 rules.
+400 rules inserted. Base: 369 rules (96 with conclusion selected). Queue: 30 rules.
+600 rules inserted. Base: 462 rules (106 with conclusion selected). Queue: 13 rules.
+Starting query event(endUser(x,y,n,k,t_end)) ==> event(beginGateway(x,y,n,t_start))
+goal reachable: begin(beginGateway(ID_i[],ID_GWN[],Nu_1,T1_1)) && mess(secure[],id_reg_1) -> end(endUser(ID_i[],ID_GWN[],Nu_1,kdf(myConcat4(bitstring_of_key(point2key(exp(exp(g,dU_1),dG_1))),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1),myConcat3(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),bitstring_of_identity(ID_i[]),bitstring_of_identity(ID_GWN[])))),T3_1))
+Abbreviations:
+s_gwn_2 = s_gwn_1[id_reg = ID_i[]]
+pid_init_1 = pid_init[id_reg = ID_i[]]
+X_i_1 = X_i[id_reg = ID_i[]]
+Nu_1 = Nu[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+dU_1 = dU[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+R_1 = R[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+S_1 = S[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+T1_1 = T1[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+dG_1 = dG[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+Ng_1 = Ng[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+T2_1 = T2[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+T3_1 = T3[T2_rec = T2_1,Auth_G_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(senc(myConcat3(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),bitstring_of_nonce(Nu_1),myConcat(bitstring_of_timestamp(T2_1),bitstring_of_identity(ID_i[]))))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T2_1),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),M2_rec = senc(myConcat3(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),bitstring_of_nonce(Nu_1),myConcat(bitstring_of_timestamp(T2_1),bitstring_of_identity(ID_i[]))))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+RESULT event(endUser(x,y,n,k,t_end)) ==> event(beginGateway(x,y,n,t_start)) is true.
+-- Query event(endGateway(x,y,n,k,t_end)) ==> event(beginUser(x,y,n,t_start)) in process 1.
+Translating the process into Horn clauses...
+select mess(secure[],id_reg_1)/-5000
+Completing...
+200 rules inserted. Base: 198 rules (89 with conclusion selected). Queue: 29 rules.
+400 rules inserted. Base: 366 rules (96 with conclusion selected). Queue: 28 rules.
+600 rules inserted. Base: 482 rules (101 with conclusion selected). Queue: 20 rules.
+Starting query event(endGateway(x,y,n,k,t_end)) ==> event(beginUser(x,y,n,t_start))
+goal reachable: begin(beginUser(ID_i[],ID_GWN[],Nu_1,T1_1)) && mess(secure[],id_reg_1) -> end(endGateway(ID_i[],ID_GWN[],Nu_1,kdf(myConcat4(bitstring_of_key(point2key(exp(exp(g,dU_1),dG_1))),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1),myConcat3(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),bitstring_of_identity(ID_i[]),bitstring_of_identity(ID_GWN[])))),T3_1))
+Abbreviations:
+s_gwn_2 = s_gwn_1[id_reg = ID_i[]]
+pid_init_1 = pid_init[id_reg = ID_i[]]
+X_i_1 = X_i[id_reg = ID_i[]]
+Nu_1 = Nu[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+dU_1 = dU[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+R_1 = R[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+S_1 = S[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+T1_1 = T1[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+dG_1 = dG[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+Ng_1 = Ng[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+T2_1 = T2[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+T3_1 = T3[T2_rec = T2_1,Auth_G_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(senc(myConcat3(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),bitstring_of_nonce(Nu_1),myConcat(bitstring_of_timestamp(T2_1),bitstring_of_identity(ID_i[]))))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T2_1),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),M2_rec = senc(myConcat3(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),bitstring_of_nonce(Nu_1),myConcat(bitstring_of_timestamp(T2_1),bitstring_of_identity(ID_i[]))))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+RESULT event(endGateway(x,y,n,k,t_end)) ==> event(beginUser(x,y,n,t_start)) is true.
+-- Query event(endSensor(ID_SD_j[],ID_GWN[],n,k)) ==> event(beginGatewaySensor(u,ID_SD_j[],n)) in process 1.
+Translating the process into Horn clauses...
+select mess(secure[],id_reg_1)/-5000
+Completing...
+200 rules inserted. Base: 198 rules (89 with conclusion selected). Queue: 27 rules.
+400 rules inserted. Base: 364 rules (96 with conclusion selected). Queue: 35 rules.
+600 rules inserted. Base: 466 rules (112 with conclusion selected). Queue: 7 rules.
+Starting query event(endSensor(ID_SD_j[],ID_GWN[],n,k)) ==> event(beginGatewaySensor(u,ID_SD_j[],n))
+goal reachable: begin(beginGatewaySensor(ID_i[],ID_SD_j[],nonce_j_1)) && mess(secure[],id_reg_1) -> end(endSensor(ID_SD_j[],ID_GWN[],nonce_j_1,hkdf(kdf(myConcat4(bitstring_of_key(point2key(exp(exp(g,dU_1),dG_1))),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1),myConcat3(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),bitstring_of_identity(ID_i[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_nonce(nonce_j_1))))
+Abbreviations:
+s_gwn_2 = s_gwn_1[id_reg = ID_i[]]
+X_i_1 = X_i[id_reg = ID_i[]]
+pid_init_1 = pid_init[id_reg = ID_i[]]
+R_1 = R[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+S_1 = S[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+dU_1 = dU[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+T1_1 = T1[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+Nu_1 = Nu[!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+T2_1 = T2[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+dG_1 = dG[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+Ng_1 = Ng[s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+T3_1 = T3[T2_rec = T2_1,Auth_G_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(senc(myConcat3(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),bitstring_of_nonce(Nu_1),myConcat(bitstring_of_timestamp(T2_1),bitstring_of_identity(ID_i[]))))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T2_1),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),M2_rec = senc(myConcat3(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Ng_1),bitstring_of_nonce(Nu_1),myConcat(bitstring_of_timestamp(T2_1),bitstring_of_identity(ID_i[]))))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),!1 = @sid,s_gwn = s_gwn_2,E_curr = initial_epoch[],PID_rec = pid_init_1,X_i_rec = X_i_1]
+nonce_j_1 = nonce_j[T3_rec = T3_1,M3_rec = hmac(kdf(myConcat4(bitstring_of_key(point2key(exp(exp(g,dU_1),dG_1))),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1),myConcat3(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),bitstring_of_identity(ID_i[]),bitstring_of_identity(ID_GWN[])))),myConcat3(bitstring_of_timestamp(T3_1),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),MAC_U2_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_group(exp(g,dG_1)),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),s_stored = s_gwn_2,x_stored = X_i_1,E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2)))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i_1),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_salt(s_gwn_2))),myConcat(bitstring_of_identity(ID_i[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1,id_reg = id_reg_1]
+RESULT event(endSensor(ID_SD_j[],ID_GWN[],n,k)) ==> event(beginGatewaySensor(u,ID_SD_j[],n)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Weak secret PW_i is true.
+
+Weak secret B_i is true.
+
+Query not (event(sessionKeyEstablished(ID_i[],ID_GWN[],sk)) && attacker_p1(sk)) is true.
+
+Query not attacker_p1(ID_i[]) is true.
+
+Query event(endUser(x,y,n,k,t_end)) ==> event(beginGateway(x,y,n,t_start)) is true.
+
+Query event(endGateway(x,y,n,k,t_end)) ==> event(beginUser(x,y,n,t_start)) is true.
+
+Query event(endSensor(ID_SD_j[],ID_GWN[],n,k)) ==> event(beginGatewaySensor(u,ID_SD_j[],n)) is true.
+
+--------------------------------------------------------------
+
+                                                                                                                        
+┌──(vinod㉿vinod)-[~/myResearchPapers/AKA-IIoT(HAn-enh)/ProVerif-Code/ProVerif-Final-Files-V3-plus]
+└─$ 
+

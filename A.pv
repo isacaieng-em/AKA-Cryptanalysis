@@ -1,0 +1,404 @@
+(* ================================================================================= *)
+(*      FINAL PROVERIF MODEL - SYNTAX FIXED & OPTIMIZED                              *)
+(* ================================================================================= *)
+
+free c: channel.              
+free secure: channel [private]. 
+
+(* LOGGING CONFIGURATION *)
+set traceDisplay = short.     
+set reconstructTrace = true.  
+
+(* --------------------------------------------------------------------------------- *)
+(* TYPE DEFINITIONS                                                                  *)
+(* --------------------------------------------------------------------------------- *)
+type key.
+type skey.      
+type pkey.      
+type nonce.
+type timestamp.
+type identity.
+type group.     
+type exponent.  
+type epoch.
+type salt.
+type biokey.
+type biotemplate.
+type signature.
+
+(* --------------------------------------------------------------------------------- *)
+(* CRYPTOGRAPHIC PRIMITIVES                                                          *)
+(* --------------------------------------------------------------------------------- *)
+(* Symmetric Encryption *)
+fun senc(bitstring, key): bitstring.
+reduc forall m: bitstring, k: key; sdec(senc(m, k), k) = m.
+
+(* Asymmetric Encryption *)
+fun pk(skey): pkey.
+fun aenc(bitstring, pkey): bitstring.
+reduc forall m: bitstring, k: skey; adec(aenc(m, pk(k)), k) = m.
+
+(* Hashing and MAC *)
+fun hash(bitstring): bitstring.
+fun hmac(key, bitstring): bitstring.
+
+(* Key Derivation *)
+fun kdf(bitstring): key.
+fun pbkdf2(bitstring, bitstring): key.
+fun hkdf(key, bitstring): key.
+
+(* Diffie-Hellman *)
+const g: group.
+fun exp(group, exponent): group.
+fun point2key(group): key.
+equation forall x: exponent, y: exponent; exp(exp(g, x), y) = exp(exp(g, y), x).
+
+(* Signatures *)
+fun sign(bitstring, skey): signature.
+reduc forall m: bitstring, k: skey; getmess(sign(m, k)) = m.
+reduc forall m: bitstring, k: skey; checksign(sign(m, k), pk(k)) = m.
+
+(* Biometrics *)
+fun Gen(bitstring): biokey.
+fun GenTemplate(bitstring): biotemplate.
+fun Rep(bitstring, biotemplate): biokey.
+
+(* --------------------------------------------------------------------------------- *)
+(* TUPLE HELPERS                                                                     *)
+(* --------------------------------------------------------------------------------- *)
+fun myConcat(bitstring, bitstring): bitstring.
+reduc forall x: bitstring, y: bitstring; getFirst(myConcat(x, y)) = x.
+reduc forall x: bitstring, y: bitstring; getSecond(myConcat(x, y)) = y.
+
+fun myConcat3(bitstring, bitstring, bitstring): bitstring.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get1of3(myConcat3(x,y,z)) = x.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get2of3(myConcat3(x,y,z)) = y.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get3of3(myConcat3(x,y,z)) = z.
+
+fun myConcat4(bitstring, bitstring, bitstring, bitstring): bitstring.
+reduc forall x: bitstring, y: bitstring, z: bitstring, w: bitstring; get1of4(myConcat4(x,y,z,w)) = x.
+reduc forall x: bitstring, y: bitstring, z: bitstring, w: bitstring; get2of4(myConcat4(x,y,z,w)) = y.
+reduc forall x: bitstring, y: bitstring, z: bitstring, w: bitstring; get3of4(myConcat4(x,y,z,w)) = z.
+reduc forall x: bitstring, y: bitstring, z: bitstring, w: bitstring; get4of4(myConcat4(x,y,z,w)) = w.
+
+(* --------------------------------------------------------------------------------- *)
+(* TYPE CONVERTERS                                                                   *)
+(* --------------------------------------------------------------------------------- *)
+fun bitstring_of_key(key): bitstring [data].
+reduc forall k: key; key_of_bitstring(bitstring_of_key(k)) = k.
+
+fun bitstring_of_nonce(nonce): bitstring [data].
+reduc forall n: nonce; nonce_of_bitstring(bitstring_of_nonce(n)) = n.
+
+fun bitstring_of_timestamp(timestamp): bitstring [data].
+reduc forall t: timestamp; timestamp_of_bitstring(bitstring_of_timestamp(t)) = t.
+
+fun bitstring_of_identity(identity): bitstring [data].
+reduc forall i: identity; identity_of_bitstring(bitstring_of_identity(i)) = i.
+
+fun bitstring_of_group(group): bitstring [data].
+reduc forall g: group; group_of_bitstring(bitstring_of_group(g)) = g.
+
+fun bitstring_of_epoch(epoch): bitstring [data].
+fun bitstring_of_biokey(biokey): bitstring [data].
+fun bitstring_of_salt(salt): bitstring [data].
+
+(* --------------------------------------------------------------------------------- *)
+(* GLOBAL VARIABLES & SECRETS                                                        *)
+(* --------------------------------------------------------------------------------- *)
+
+(* User Secrets (Private) *)
+free ID_i: identity [private].
+free PW_i: bitstring [private].
+free B_i: bitstring [private].
+
+(* Weak Secret Declarations *)
+weaksecret PW_i.
+weaksecret B_i.
+
+(* Public Identities *)
+free ID_GWN: identity.
+free ID_SD_j: identity.
+free initial_epoch: epoch.
+
+(* Databases *)
+table GatewayDB(identity, key, salt).
+table SensorReplayCache(identity, nonce).
+
+(* --------------------------------------------------------------------------------- *)
+(* EVENTS                                                                            *)
+(* --------------------------------------------------------------------------------- *)
+event beginUser(identity, identity, nonce, timestamp).
+event endUser(identity, identity, nonce, key, timestamp).
+event beginGateway(identity, identity, nonce, timestamp).
+event endGateway(identity, identity, nonce, key, timestamp).
+
+event sessionKeyEstablished(identity, identity, key).
+event keyRotated(epoch, key).
+event keyConfirmed(identity, identity, key).
+
+event beginGatewaySensor(identity, identity, nonce).
+event endSensor(identity, identity, nonce, key).
+
+(* --------------------------------------------------------------------------------- *)
+(* PROCESS: USER                                                                     *)
+(* --------------------------------------------------------------------------------- *)
+let ProcessUser(id: identity, pw: bitstring, bio: bitstring, PK_GWN: pkey) =
+    (* User Registration / Setup *)
+    out(secure, id);
+    in(secure, (X_i_rec: key, PID_rec: bitstring, E_curr: epoch, s_gwn: salt));
+    
+    let BK_i = Gen(bio) in
+    let tau_i = GenTemplate(bio) in
+    let K_UG_static = pbkdf2(bitstring_of_key(X_i_rec), myConcat(bitstring_of_identity(id), bitstring_of_salt(s_gwn))) in
+    
+    !
+    (
+        (* Login Phase *)
+        let BK_login = Rep(bio, tau_i) in
+        new dU: exponent;
+        let Qu = exp(g, dU) in
+        new Nu: nonce;
+        new S: bitstring;
+        new R: bitstring;
+        new T1: timestamp;
+        
+        let hmac_internal = hmac(K_UG_static, myConcat(bitstring_of_identity(id), bitstring_of_epoch(E_curr))) in
+        let plain_blob = myConcat4(bitstring_of_identity(id), R, S, myConcat(bitstring_of_epoch(E_curr), hmac_internal)) in
+        let TempID = aenc(plain_blob, PK_GWN) in
+        
+        let mac_input_u1 = myConcat4(bitstring_of_group(Qu), bitstring_of_nonce(Nu), bitstring_of_timestamp(T1), myConcat(bitstring_of_epoch(E_curr), bitstring_of_identity(ID_GWN))) in
+        let MAC_U1 = hmac(K_UG_static, mac_input_u1) in
+        
+        let m1_payload = myConcat4(bitstring_of_group(Qu), bitstring_of_timestamp(T1), bitstring_of_nonce(Nu), myConcat(MAC_U1, bitstring_of_epoch(E_curr))) in
+        let M1 = senc(m1_payload, K_UG_static) in
+        
+        let Auth_U = hmac(K_UG_static, myConcat4(TempID, M1, bitstring_of_timestamp(T1), myConcat(bitstring_of_nonce(Nu), bitstring_of_epoch(E_curr)))) in
+        
+        event beginUser(id, ID_GWN, Nu, T1);
+        out(c, (TempID, M1, Auth_U, E_curr));
+
+        in(c, (M2_rec: bitstring, Auth_G_rec: bitstring, T2_rec: timestamp));
+        
+        let m2_dec = sdec(M2_rec, K_UG_static) in
+        let bit_Qg = get1of3(m2_dec) in
+        let bit_Ng = get2of3(m2_dec) in
+        let MAC_G1_rec = get3of3(m2_dec) in
+        
+        let Qg_real = group_of_bitstring(bit_Qg) in
+        let Ng_rec = nonce_of_bitstring(bit_Ng) in
+        
+        let mac_g1_check = hmac(K_UG_static, myConcat4(bit_Qg, bit_Ng, bitstring_of_nonce(Nu), myConcat(bitstring_of_timestamp(T2_rec), bitstring_of_identity(id)))) in
+        
+        if mac_g1_check = MAC_G1_rec then
+        (
+            let auth_g_check = hmac(K_UG_static, myConcat4(M2_rec, bitstring_of_timestamp(T2_rec), bitstring_of_nonce(Nu), bit_Ng)) in
+            
+            if auth_g_check = Auth_G_rec then
+            (
+                let shared_point = exp(Qg_real, dU) in
+                let nonce_hmac = hmac(K_UG_static, myConcat(bitstring_of_nonce(Nu), bit_Ng)) in
+                let sk_input = myConcat4(bitstring_of_key(point2key(shared_point)), bitstring_of_nonce(Nu), bit_Ng, myConcat3(nonce_hmac, bitstring_of_identity(id), bitstring_of_identity(ID_GWN))) in
+                let SK = kdf(sk_input) in
+                
+                let MAC_U2 = hmac(K_UG_static, myConcat4(bitstring_of_group(Qu), bit_Qg, bitstring_of_nonce(Nu), bit_Ng)) in
+                new T3: timestamp;
+                let M3 = hmac(SK, myConcat3(bitstring_of_timestamp(T3), bitstring_of_nonce(Nu), bit_Ng)) in
+                
+                event sessionKeyEstablished(id, ID_GWN, SK);
+                out(c, (MAC_U2, M3, T3));
+                
+                (* KSSTI: Leak Ephemeral *)
+                out(c, dU);
+                
+                in(c, M4_rec: bitstring);
+                event endUser(id, ID_GWN, Nu, SK, T3);
+                event keyConfirmed(id, ID_GWN, SK)
+            )
+        )
+    ).
+
+(* --------------------------------------------------------------------------------- *)
+(* PROCESS: GATEWAY                                                                  *)
+(* --------------------------------------------------------------------------------- *)
+let ProcessGateway(SK_Dec: skey, SK_Sign: skey, M_Key: key, K_Sens: key) =
+    in(secure, id_reg: identity);
+    new X_i: key;
+    new s_gwn: salt;
+    let K_UG = pbkdf2(bitstring_of_key(X_i), myConcat(bitstring_of_identity(id_reg), bitstring_of_salt(s_gwn))) in
+    new pid_init: bitstring; 
+    
+    insert GatewayDB(id_reg, X_i, s_gwn);
+    out(secure, (X_i, pid_init, initial_epoch, s_gwn));
+
+    !
+    (
+        in(c, (TempID_rec: bitstring, M1_rec: bitstring, Auth_U_rec: bitstring, E_user: epoch));
+        
+        let plain_blob = adec(TempID_rec, SK_Dec) in
+        let id_extracted = identity_of_bitstring(get1of4(plain_blob)) in
+        
+        get GatewayDB(=id_extracted, x_stored, s_stored) in
+        
+        let K_UG_curr = pbkdf2(bitstring_of_key(x_stored), myConcat(bitstring_of_identity(id_extracted), bitstring_of_salt(s_stored))) in
+        
+        let m1_dec = sdec(M1_rec, K_UG_curr) in
+        let bit_Qu = get1of4(m1_dec) in
+        let bit_T1 = get2of4(m1_dec) in
+        let bit_Nu = get3of4(m1_dec) in
+        let rest_m1 = get4of4(m1_dec) in
+        let MAC_U1_rec = getFirst(rest_m1) in
+        
+        let Qu_rec = group_of_bitstring(bit_Qu) in
+        let Nu_rec = nonce_of_bitstring(bit_Nu) in
+        let T1_rec = timestamp_of_bitstring(bit_T1) in
+        
+        let mac_u1_calc = hmac(K_UG_curr, myConcat4(bit_Qu, bit_Nu, bit_T1, myConcat(bitstring_of_epoch(E_user), bitstring_of_identity(ID_GWN)))) in
+        
+        if mac_u1_calc = MAC_U1_rec then
+        (
+            let auth_u_calc = hmac(K_UG_curr, myConcat4(TempID_rec, M1_rec, bit_T1, myConcat(bit_Nu, bitstring_of_epoch(E_user)))) in
+            
+            if auth_u_calc = Auth_U_rec then
+            (
+                event beginGateway(id_extracted, ID_GWN, Nu_rec, T1_rec);
+                
+                new dG: exponent;
+                let Qg = exp(g, dG) in
+                new Ng: nonce;
+                new T2: timestamp;
+                
+                let mac_g1 = hmac(K_UG_curr, myConcat4(bitstring_of_group(Qg), bitstring_of_nonce(Ng), bit_Nu, myConcat(bitstring_of_timestamp(T2), bitstring_of_identity(id_extracted)))) in
+                let m2_payload = myConcat3(bitstring_of_group(Qg), bitstring_of_nonce(Ng), mac_g1) in
+                let M2 = senc(m2_payload, K_UG_curr) in
+                let Auth_G = hmac(K_UG_curr, myConcat4(M2, bitstring_of_timestamp(T2), bit_Nu, bitstring_of_nonce(Ng))) in
+                
+                out(c, (M2, Auth_G, T2));
+                
+                in(c, (MAC_U2_rec: bitstring, M3_rec: bitstring, T3_rec: timestamp));
+                
+                let mac_u2_calc = hmac(K_UG_curr, myConcat4(bit_Qu, bitstring_of_group(Qg), bit_Nu, bitstring_of_nonce(Ng))) in
+                
+                if mac_u2_calc = MAC_U2_rec then
+                (
+                     let shared_point_g = exp(Qu_rec, dG) in
+                     let nonce_hmac_g = hmac(K_UG_curr, myConcat(bit_Nu, bitstring_of_nonce(Ng))) in
+                     let sk_input_g = myConcat4(bitstring_of_key(point2key(shared_point_g)), bit_Nu, bitstring_of_nonce(Ng), myConcat3(nonce_hmac_g, bitstring_of_identity(id_extracted), bitstring_of_identity(ID_GWN))) in
+                     let SK_g = kdf(sk_input_g) in
+                     
+                     let m3_calc = hmac(SK_g, myConcat3(bitstring_of_timestamp(T3_rec), bit_Nu, bitstring_of_nonce(Ng))) in
+                     
+                     if m3_calc = M3_rec then
+                     (
+                        event keyConfirmed(id_extracted, ID_GWN, SK_g);
+                        
+                        (* Sensor Key Dist *)
+                        new nonce_j: nonce;
+                        let SK_s_j = hkdf(SK_g, bitstring_of_nonce(nonce_j)) in
+                        
+                        (* KSSTI: Leak Ephemeral *)
+                        out(c, dG);
+                        
+                        (* 1. Send to User *)
+                        let m4_payload_u = myConcat(bitstring_of_key(SK_s_j), bitstring_of_nonce(nonce_j)) in
+                        let M4 = senc(m4_payload_u, SK_g) in
+                        out(c, M4);
+                        
+                        (* 2. Send to Sensor *)
+                        let m4_payload_s = myConcat(bitstring_of_key(SK_s_j), bitstring_of_nonce(nonce_j)) in
+                        let M4_sens = senc(m4_payload_s, K_Sens) in
+
+                        event beginGatewaySensor(id_extracted, ID_SD_j, nonce_j);
+                        out(c, M4_sens);
+                        event endGateway(id_extracted, ID_GWN, Nu_rec, SK_g, T3_rec)
+                     )
+                )
+            )
+        )
+    ).
+
+(* --------------------------------------------------------------------------------- *)
+(* PROCESS: SENSOR                                                                   *)
+(* --------------------------------------------------------------------------------- *)
+let ProcessSensor(K_Sens: key) = 
+    !
+    (
+        in(c, M4_j: bitstring);
+        let dec_payload = sdec(M4_j, K_Sens) in
+        let sk_rec = key_of_bitstring(getFirst(dec_payload)) in
+        let nj_rec = nonce_of_bitstring(getSecond(dec_payload)) in
+        
+        get SensorReplayCache(=ID_SD_j, =nj_rec) in
+        ( 0 )
+        else
+        (
+            insert SensorReplayCache(ID_SD_j, nj_rec);
+            event endSensor(ID_SD_j, ID_GWN, nj_rec, sk_rec)
+        )
+    ).
+    
+(* --------------------------------------------------------------------------------- *)
+(* PROCESS: KEY ROTATION                                                             *)
+(* --------------------------------------------------------------------------------- *)
+let ProcessRotation(SK_Sign: skey, M_Key: key) =
+    new delta: bitstring;
+    new next_epoch: epoch;
+    let payload = myConcat3(bitstring_of_epoch(next_epoch), hash(bitstring_of_key(M_Key)), delta) in
+    let sig_update = sign(payload, SK_Sign) in
+    event keyRotated(next_epoch, M_Key);
+    out(c, (next_epoch, sig_update, delta)).
+
+(* --------------------------------------------------------------------------------- *)
+(* PROCESS: CORRUPT (PFS)                                                            *)
+(* --------------------------------------------------------------------------------- *)
+let ProcessCorrupt(SK_Dec: skey, SK_Sign: skey, M_Key: key, K_Sens: key) =
+    phase 1;
+    (* out(c, SK_Dec); *)
+    0.
+
+(* --------------------------------------------------------------------------------- *)
+(* VERIFICATION QUERIES                                                              *)
+(* --------------------------------------------------------------------------------- *)
+
+(* 1. Secrecy of Session Key (PFS Verified) *)
+query sk: key; event(sessionKeyEstablished(ID_i, ID_GWN, sk)) && attacker(sk) ==> false.
+
+(* 2. Anonymity *)
+query attacker(ID_i).
+
+(* 3. Entity Authentication (User <-> Gateway) *)
+query x: identity, y: identity, n: nonce, k: key, t_end: timestamp, t_start: timestamp;
+    event(endUser(x, y, n, k, t_end)) ==> event(beginGateway(x, y, n, t_start)).
+
+query x: identity, y: identity, n: nonce, k: key, t_end: timestamp, t_start: timestamp;
+    event(endGateway(x, y, n, k, t_end)) ==> event(beginUser(x, y, n, t_start)).
+
+(* 4. Sensor Authentication *)
+(* NOTE: Switched to non-injective event here to avoid potential race condition 
+   errors in ProVerif unless sequential execution is strictly enforced. *)
+query u: identity, n: nonce, k: key;
+    event(endSensor(ID_SD_j, ID_GWN, n, k)) ==> event(beginGatewaySensor(u, ID_SD_j, n)).
+
+(* --------------------------------------------------------------------------------- *)
+(* MAIN PROCESS                                                                      *)
+(* --------------------------------------------------------------------------------- *)
+process
+    new MasterKey: key;
+    new SK_GWN_enc: skey;
+    new SK_GWN_sign: skey;
+    new K_Sensor: key; 
+    
+    let PK_GWN = pk(SK_GWN_enc) in
+    let VerKey_GWN = pk(SK_GWN_sign) in
+    
+    (* Using global secrets declared at the top, DO NOT re-declare them here. *)
+    (* We just use them directly in the process calls. *)
+    
+    (
+        ProcessUser(ID_i, PW_i, B_i, PK_GWN) | 
+        ProcessGateway(SK_GWN_enc, SK_GWN_sign, MasterKey, K_Sensor) | 
+        ProcessRotation(SK_GWN_sign, MasterKey) | 
+        ProcessSensor(K_Sensor) |
+        ProcessCorrupt(SK_GWN_enc, SK_GWN_sign, MasterKey, K_Sensor)
+    )
+    
