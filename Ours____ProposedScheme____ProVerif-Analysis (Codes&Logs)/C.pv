@@ -1,0 +1,76 @@
+(* ================================================================================= *)
+(*      MODEL B: KEY ROTATION & DESYNCHRONIZATION VERIFICATION                       *)
+(* ================================================================================= *)
+
+free c: channel.
+
+set traceDisplay = short.
+set reconstructTrace = true.
+
+type key. type skey. type pkey. type epoch. type signature.
+
+fun pk(skey): pkey.
+fun sign(bitstring, skey): signature.
+reduc forall m: bitstring, k: skey; checksign(sign(m, k), pk(k)) = m.
+fun hash(bitstring): bitstring.
+
+fun bitstring_of_epoch(epoch): bitstring [data].
+fun bitstring_of_key(key): bitstring [data].
+
+(* Tuple Helper *)
+fun myConcat3(bitstring, bitstring, bitstring): bitstring.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get1of3(myConcat3(x,y,z)) = x.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get2of3(myConcat3(x,y,z)) = y.
+reduc forall x: bitstring, y: bitstring, z: bitstring; get3of3(myConcat3(x,y,z)) = z.
+
+(* EVENTS *)
+event GatewayRotated(epoch, key).
+event UserAcceptedUpdate(epoch, key).
+
+(* QUERY: DESYNCHRONIZATION / INTEGRITY 
+   If the User accepts a new epoch, did the Gateway actually sign it?
+   If TRUE -> Secure against desync attacks via spoofing. *)
+query e: epoch, k: key;
+    event(UserAcceptedUpdate(e, k)) ==> event(GatewayRotated(e, k)).
+
+(* QUERY: SECRECY OF NEW KEY *)
+query attacker(new_epoch_key).
+
+free new_epoch_key: key [private].
+
+(* PROCESS: GATEWAY ROTATION *)
+let ProcessRotation(SK_Sign: skey, M_Key: key) =
+    new delta: bitstring;
+    new next_epoch: epoch;
+    (* Gateway generates the update *)
+    let payload = myConcat3(bitstring_of_epoch(next_epoch), hash(bitstring_of_key(M_Key)), delta) in
+    let sig_update = sign(payload, SK_Sign) in
+    
+    event GatewayRotated(next_epoch, M_Key);
+    out(c, (next_epoch, sig_update, delta)).
+
+(* PROCESS: USER UPDATE LISTENER *)
+let ProcessUserUpdate(PK_Sign: pkey, M_Key: key) =
+    in(c, (ep_rec: epoch, sig_rec: signature, delta_rec: bitstring));
+    
+    (* Check Signature *)
+    let payload_check = checksign(sig_rec, PK_Sign) in
+    let e_check = get1of3(payload_check) in
+    let h_check = get2of3(payload_check) in
+    
+    (* Verify Content *)
+    if e_check = bitstring_of_epoch(ep_rec) then
+    if h_check = hash(bitstring_of_key(M_Key)) then
+    (
+        event UserAcceptedUpdate(ep_rec, M_Key)
+    ).
+
+process
+    new SK_GWN_sign: skey;
+    let PK_GWN = pk(SK_GWN_sign) in
+    new MasterKey: key;
+    
+    (
+        ProcessRotation(SK_GWN_sign, MasterKey) | 
+        ProcessUserUpdate(PK_GWN, MasterKey)
+    )

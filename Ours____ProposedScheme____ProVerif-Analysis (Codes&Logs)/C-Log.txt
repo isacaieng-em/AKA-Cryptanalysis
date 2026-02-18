@@ -1,0 +1,77 @@
+                                                                                                                        
+┌──(vinod㉿vinod)-[~/…/AKA-IIoT(HAn-enh)/ProVerif-Code/ProVerif-Final-Files-V3-plus/Final]
+└─$ proverif C.pv
+Process 0 (that is, the initial process):
+{1}new SK_GWN_sign: skey;
+{2}let PK_GWN: pkey = pk(SK_GWN_sign) in
+{3}new MasterKey: key;
+(
+    {4}let SK_Sign: skey = SK_GWN_sign in
+    {5}let M_Key: key = MasterKey in
+    {6}new delta: bitstring;
+    {7}new next_epoch: epoch;
+    {8}let payload: bitstring = myConcat3(bitstring_of_epoch(next_epoch),hash(bitstring_of_key(M_Key)),delta) in
+    {9}let sig_update: signature = sign(payload,SK_Sign) in
+    {10}event GatewayRotated(next_epoch,M_Key);
+    {11}out(c, (next_epoch,sig_update,delta))
+) | (
+    {12}let M_Key_1: key = MasterKey in
+    {13}in(c, (ep_rec: epoch,sig_rec: signature,delta_rec: bitstring));
+    {14}let payload_check: bitstring = checksign(sig_rec,PK_GWN) in
+    {15}let e_check: bitstring = get1of3(payload_check) in
+    {16}let h_check: bitstring = get2of3(payload_check) in
+    {17}if (e_check = bitstring_of_epoch(ep_rec)) then
+    {18}if (h_check = hash(bitstring_of_key(M_Key_1))) then
+    {19}event UserAcceptedUpdate(ep_rec,M_Key_1)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new SK_GWN_sign: skey;
+{3}new MasterKey: key;
+(
+    {6}new delta: bitstring;
+    {7}new next_epoch: epoch;
+    {5}let M_Key: key = MasterKey in
+    {10}event GatewayRotated(next_epoch,M_Key);
+    {8}let payload: bitstring = myConcat3(bitstring_of_epoch(next_epoch),hash(bitstring_of_key(M_Key)),delta) in
+    {4}let SK_Sign: skey = SK_GWN_sign in
+    {9}let sig_update: signature = sign(payload,SK_Sign) in
+    {11}out(c, (next_epoch,sig_update,delta))
+) | (
+    {13}in(c, (ep_rec: epoch,sig_rec: signature,delta_rec: bitstring));
+    {2}let PK_GWN: pkey = pk(SK_GWN_sign) in
+    {14}let payload_check: bitstring = checksign(sig_rec,PK_GWN) in
+    {15}let e_check: bitstring = get1of3(payload_check) in
+    {16}let h_check: bitstring = get2of3(payload_check) in
+    {17}if (e_check = bitstring_of_epoch(ep_rec)) then
+    {12}let M_Key_1: key = MasterKey in
+    {18}if (h_check = hash(bitstring_of_key(M_Key_1))) then
+    {19}event UserAcceptedUpdate(ep_rec,M_Key_1)
+)
+
+-- Query event(UserAcceptedUpdate(e,k)) ==> event(GatewayRotated(e,k)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(UserAcceptedUpdate(e,k)) ==> event(GatewayRotated(e,k))
+goal reachable: begin(GatewayRotated(next_epoch[],MasterKey[])) -> end(UserAcceptedUpdate(next_epoch[],MasterKey[]))
+RESULT event(UserAcceptedUpdate(e,k)) ==> event(GatewayRotated(e,k)) is true.
+-- Query not attacker(new_epoch_key[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not attacker(new_epoch_key[])
+RESULT not attacker(new_epoch_key[]) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(UserAcceptedUpdate(e,k)) ==> event(GatewayRotated(e,k)) is true.
+
+Query not attacker(new_epoch_key[]) is true.
+
+--------------------------------------------------------------
+
+                                                                                                                        
+┌──(vinod㉿vinod)-[~/…/AKA-IIoT(HAn-enh)/ProVerif-Code/ProVerif-Final-Files-V3-plus/Final]
+└─$ 
+
+

@@ -1,0 +1,207 @@
+                                                                                                                        
+┌──(vinod㉿vinod)-[~/…/AKA-IIoT(HAn-enh)/ProVerif-Code/ProVerif-Final-Files-V3-plus/Final]
+└─$ proverif B.pv
+File "B.pv", line 62, character 14:
+Warning: identifier g rebound.
+File "B.pv", line 170, characters 9-12:
+Warning: identifier ID_i rebound.
+Linear part:
+exp(exp(g,x),y) = exp(exp(g,y),x)
+Completing equations...
+Completed equations:
+exp(exp(g,x),y) = exp(exp(g,y),x)
+Convergent part: No equation.
+Process 0 (that is, the initial process):
+{1}new SK_GWN_enc: skey;
+{2}let PK_GWN: pkey = pk(SK_GWN_enc) in
+{3}new PW_i: bitstring;
+{4}new B_i: bitstring;
+{5}new ID_i_1: identity;
+{6}out(c, PW_i);
+{7}out(c, B_i);
+{8}out(c, ID_i_1);
+(
+    {9}let id: identity = ID_i_1 in
+    {10}let pw: bitstring = PW_i in
+    {11}let bio: bitstring = B_i in
+    {12}in(secure, (X_i_rec: key,PID_rec: bitstring,E_curr: epoch,s_gwn: salt));
+    {13}let BK_i: biokey = Gen(bio) in
+    {14}let tau_i: biotemplate = GenTemplate(bio) in
+    {15}let K_UG_static: key = pbkdf2(bitstring_of_key(X_i_rec),myConcat(bitstring_of_identity(id),bitstring_of_salt(s_gwn))) in
+    {16}!
+    {17}new dU: exponent;
+    {18}let Qu: group = exp(g,dU) in
+    {19}new Nu: nonce;
+    {20}new S: bitstring;
+    {21}new R: bitstring;
+    {22}new T1: timestamp;
+    {23}let hmac_internal: bitstring = hmac(K_UG_static,myConcat(bitstring_of_identity(id),bitstring_of_epoch(E_curr))) in
+    {24}let plain_blob: bitstring = myConcat4(bitstring_of_identity(id),R,S,myConcat(bitstring_of_epoch(E_curr),hmac_internal)) in
+    {25}let TempID: bitstring = aenc(plain_blob,PK_GWN) in
+    {26}let mac_input_u1: bitstring = myConcat4(bitstring_of_group(Qu),bitstring_of_nonce(Nu),bitstring_of_timestamp(T1),myConcat(bitstring_of_epoch(E_curr),bitstring_of_identity(ID_GWN))) in
+    {27}let MAC_U1: bitstring = hmac(K_UG_static,mac_input_u1) in
+    {28}let m1_payload: bitstring = myConcat4(bitstring_of_group(Qu),bitstring_of_timestamp(T1),bitstring_of_nonce(Nu),myConcat(MAC_U1,bitstring_of_epoch(E_curr))) in
+    {29}let M1: bitstring = senc(m1_payload,K_UG_static) in
+    {30}let Auth_U: bitstring = hmac(K_UG_static,myConcat4(TempID,M1,bitstring_of_timestamp(T1),myConcat(bitstring_of_nonce(Nu),bitstring_of_epoch(E_curr)))) in
+    {31}event beginUser(id,ID_GWN,Nu);
+    {32}out(c, (TempID,M1,Auth_U,E_curr));
+    {33}in(c, (M2_rec: bitstring,Auth_G_rec: bitstring,T2_rec: timestamp));
+    {34}let m2_dec: bitstring = sdec(M2_rec,K_UG_static) in
+    {35}let bit_Qg: bitstring = get1of3(m2_dec) in
+    {36}let bit_Ng: bitstring = get2of3(m2_dec) in
+    {37}let MAC_G1_rec: bitstring = get3of3(m2_dec) in
+    {38}let mac_g1_check: bitstring = hmac(K_UG_static,myConcat4(bit_Qg,bit_Ng,bitstring_of_nonce(Nu),myConcat(bitstring_of_timestamp(T2_rec),bitstring_of_identity(id)))) in
+    {39}if (mac_g1_check = MAC_G1_rec) then
+    {40}let auth_g_check: bitstring = hmac(K_UG_static,myConcat4(M2_rec,bitstring_of_timestamp(T2_rec),bitstring_of_nonce(Nu),bit_Ng)) in
+    {41}if (auth_g_check = Auth_G_rec) then
+    {42}let shared_point: group = exp(group_of_bitstring(bit_Qg),dU) in
+    {43}let nonce_hmac: bitstring = hmac(K_UG_static,myConcat(bitstring_of_nonce(Nu),bit_Ng)) in
+    {44}let sk_input: bitstring = myConcat4(bitstring_of_key(point2key(shared_point)),bitstring_of_nonce(Nu),bit_Ng,myConcat3(nonce_hmac,bitstring_of_identity(id),bitstring_of_identity(ID_GWN))) in
+    {45}let SK: key = kdf(sk_input) in
+    {46}event endUser(id,ID_GWN,Nu,SK)
+) | (
+    {47}let SK_Dec: skey = SK_GWN_enc in
+    {48}let id_reg: identity = ID_i_1 in
+    {49}new X_i: key;
+    {50}new s_gwn_1: salt;
+    {51}new pid_init: bitstring;
+    {52}insert GatewayDB(id_reg,X_i,s_gwn_1);
+    {53}out(secure, (X_i,pid_init,initial_epoch,s_gwn_1));
+    {54}!
+    {55}in(c, (TempID_rec: bitstring,M1_rec: bitstring,Auth_U_rec: bitstring,E_user: epoch));
+    {56}let plain_blob_1: bitstring = adec(TempID_rec,SK_Dec) in
+    {57}let id_extracted: identity = identity_of_bitstring(get1of4(plain_blob_1)) in
+    {80}get GatewayDB(=id_extracted,x_stored: key,s_stored: salt) in
+    {58}let K_UG_curr: key = pbkdf2(bitstring_of_key(x_stored),myConcat(bitstring_of_identity(id_extracted),bitstring_of_salt(s_stored))) in
+    {59}let m1_dec: bitstring = sdec(M1_rec,K_UG_curr) in
+    {60}let bit_Qu: bitstring = get1of4(m1_dec) in
+    {61}let bit_T1: bitstring = get2of4(m1_dec) in
+    {62}let bit_Nu: bitstring = get3of4(m1_dec) in
+    {63}let rest_m1: bitstring = get4of4(m1_dec) in
+    {64}let MAC_U1_rec: bitstring = getFirst(rest_m1) in
+    {65}let mac_u1_calc: bitstring = hmac(K_UG_curr,myConcat4(bit_Qu,bit_Nu,bit_T1,myConcat(bitstring_of_epoch(E_user),bitstring_of_identity(ID_GWN)))) in
+    {66}if (mac_u1_calc = MAC_U1_rec) then
+    {67}let auth_u_calc: bitstring = hmac(K_UG_curr,myConcat4(TempID_rec,M1_rec,bit_T1,myConcat(bit_Nu,bitstring_of_epoch(E_user)))) in
+    {68}if (auth_u_calc = Auth_U_rec) then
+    {69}let Nu_rec: nonce = nonce_of_bitstring(bit_Nu) in
+    {70}event beginGateway(id_extracted,ID_GWN,Nu_rec);
+    {71}new dG: exponent;
+    {72}let Qg: group = exp(g,dG) in
+    {73}new Ng: nonce;
+    {74}new T2: timestamp;
+    {75}let mac_g1: bitstring = hmac(K_UG_curr,myConcat4(bitstring_of_group(Qg),bitstring_of_nonce(Ng),bit_Nu,myConcat(bitstring_of_timestamp(T2),bitstring_of_identity(id_extracted)))) in
+    {76}let m2_payload: bitstring = myConcat3(bitstring_of_group(Qg),bitstring_of_nonce(Ng),mac_g1) in
+    {77}let M2: bitstring = senc(m2_payload,K_UG_curr) in
+    {78}let Auth_G: bitstring = hmac(K_UG_curr,myConcat4(M2,bitstring_of_timestamp(T2),bit_Nu,bitstring_of_nonce(Ng))) in
+    {79}out(c, (M2,Auth_G,T2))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new SK_GWN_enc: skey;
+{3}new PW_i: bitstring;
+{4}new B_i: bitstring;
+{5}new ID_i_1: identity;
+{6}out(c, PW_i);
+{7}out(c, B_i);
+{8}out(c, ID_i_1);
+(
+    {12}in(secure, (X_i_rec: key,PID_rec: bitstring,E_curr: epoch,s_gwn: salt));
+    {16}!
+    {17}new dU: exponent;
+    {19}new Nu: nonce;
+    {20}new S: bitstring;
+    {21}new R: bitstring;
+    {22}new T1: timestamp;
+    {9}let id: identity = ID_i_1 in
+    {31}event beginUser(id,ID_GWN,Nu);
+    {18}let Qu: group = exp(g,dU) in
+    {26}let mac_input_u1: bitstring = myConcat4(bitstring_of_group(Qu),bitstring_of_nonce(Nu),bitstring_of_timestamp(T1),myConcat(bitstring_of_epoch(E_curr),bitstring_of_identity(ID_GWN))) in
+    {15}let K_UG_static: key = pbkdf2(bitstring_of_key(X_i_rec),myConcat(bitstring_of_identity(id),bitstring_of_salt(s_gwn))) in
+    {27}let MAC_U1: bitstring = hmac(K_UG_static,mac_input_u1) in
+    {28}let m1_payload: bitstring = myConcat4(bitstring_of_group(Qu),bitstring_of_timestamp(T1),bitstring_of_nonce(Nu),myConcat(MAC_U1,bitstring_of_epoch(E_curr))) in
+    {29}let M1: bitstring = senc(m1_payload,K_UG_static) in
+    {23}let hmac_internal: bitstring = hmac(K_UG_static,myConcat(bitstring_of_identity(id),bitstring_of_epoch(E_curr))) in
+    {24}let plain_blob: bitstring = myConcat4(bitstring_of_identity(id),R,S,myConcat(bitstring_of_epoch(E_curr),hmac_internal)) in
+    {2}let PK_GWN: pkey = pk(SK_GWN_enc) in
+    {25}let TempID: bitstring = aenc(plain_blob,PK_GWN) in
+    {30}let Auth_U: bitstring = hmac(K_UG_static,myConcat4(TempID,M1,bitstring_of_timestamp(T1),myConcat(bitstring_of_nonce(Nu),bitstring_of_epoch(E_curr)))) in
+    {32}out(c, (TempID,M1,Auth_U,E_curr));
+    {33}in(c, (M2_rec: bitstring,Auth_G_rec: bitstring,T2_rec: timestamp));
+    {34}let m2_dec: bitstring = sdec(M2_rec,K_UG_static) in
+    {35}let bit_Qg: bitstring = get1of3(m2_dec) in
+    {36}let bit_Ng: bitstring = get2of3(m2_dec) in
+    {37}let MAC_G1_rec: bitstring = get3of3(m2_dec) in
+    {38}let mac_g1_check: bitstring = hmac(K_UG_static,myConcat4(bit_Qg,bit_Ng,bitstring_of_nonce(Nu),myConcat(bitstring_of_timestamp(T2_rec),bitstring_of_identity(id)))) in
+    {39}if (mac_g1_check = MAC_G1_rec) then
+    {40}let auth_g_check: bitstring = hmac(K_UG_static,myConcat4(M2_rec,bitstring_of_timestamp(T2_rec),bitstring_of_nonce(Nu),bit_Ng)) in
+    {41}if (auth_g_check = Auth_G_rec) then
+    {42}let shared_point: group = exp(group_of_bitstring(bit_Qg),dU) in
+    {43}let nonce_hmac: bitstring = hmac(K_UG_static,myConcat(bitstring_of_nonce(Nu),bit_Ng)) in
+    {44}let sk_input: bitstring = myConcat4(bitstring_of_key(point2key(shared_point)),bitstring_of_nonce(Nu),bit_Ng,myConcat3(nonce_hmac,bitstring_of_identity(id),bitstring_of_identity(ID_GWN))) in
+    {45}let SK: key = kdf(sk_input) in
+    {46}event endUser(id,ID_GWN,Nu,SK)
+) | (
+    {49}new X_i: key;
+    {50}new s_gwn_1: salt;
+    {51}new pid_init: bitstring;
+    {48}let id_reg: identity = ID_i_1 in
+    {52}insert GatewayDB(id_reg,X_i,s_gwn_1);
+    {53}out(secure, (X_i,pid_init,initial_epoch,s_gwn_1));
+    {54}!
+    {55}in(c, (TempID_rec: bitstring,M1_rec: bitstring,Auth_U_rec: bitstring,E_user: epoch));
+    {47}let SK_Dec: skey = SK_GWN_enc in
+    {56}let plain_blob_1: bitstring = adec(TempID_rec,SK_Dec) in
+    {57}let id_extracted: identity = identity_of_bitstring(get1of4(plain_blob_1)) in
+    {80}get GatewayDB(=id_extracted,x_stored: key,s_stored: salt) in
+    {58}let K_UG_curr: key = pbkdf2(bitstring_of_key(x_stored),myConcat(bitstring_of_identity(id_extracted),bitstring_of_salt(s_stored))) in
+    {59}let m1_dec: bitstring = sdec(M1_rec,K_UG_curr) in
+    {60}let bit_Qu: bitstring = get1of4(m1_dec) in
+    {61}let bit_T1: bitstring = get2of4(m1_dec) in
+    {62}let bit_Nu: bitstring = get3of4(m1_dec) in
+    {63}let rest_m1: bitstring = get4of4(m1_dec) in
+    {64}let MAC_U1_rec: bitstring = getFirst(rest_m1) in
+    {65}let mac_u1_calc: bitstring = hmac(K_UG_curr,myConcat4(bit_Qu,bit_Nu,bit_T1,myConcat(bitstring_of_epoch(E_user),bitstring_of_identity(ID_GWN)))) in
+    {66}if (mac_u1_calc = MAC_U1_rec) then
+    {67}let auth_u_calc: bitstring = hmac(K_UG_curr,myConcat4(TempID_rec,M1_rec,bit_T1,myConcat(bit_Nu,bitstring_of_epoch(E_user)))) in
+    {68}if (auth_u_calc = Auth_U_rec) then
+    {69}let Nu_rec: nonce = nonce_of_bitstring(bit_Nu) in
+    {70}event beginGateway(id_extracted,ID_GWN,Nu_rec);
+    {71}new dG: exponent;
+    {73}new Ng: nonce;
+    {74}new T2: timestamp;
+    {72}let Qg: group = exp(g,dG) in
+    {75}let mac_g1: bitstring = hmac(K_UG_curr,myConcat4(bitstring_of_group(Qg),bitstring_of_nonce(Ng),bit_Nu,myConcat(bitstring_of_timestamp(T2),bitstring_of_identity(id_extracted)))) in
+    {76}let m2_payload: bitstring = myConcat3(bitstring_of_group(Qg),bitstring_of_nonce(Ng),mac_g1) in
+    {77}let M2: bitstring = senc(m2_payload,K_UG_curr) in
+    {78}let Auth_G: bitstring = hmac(K_UG_curr,myConcat4(M2,bitstring_of_timestamp(T2),bit_Nu,bitstring_of_nonce(Ng))) in
+    {79}out(c, (M2,Auth_G,T2))
+)
+
+-- Query event(endUser(x,y,n,k)) ==> event(beginGateway(x,y,n)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 177 rules (52 with conclusion selected). Queue: 9 rules.
+Starting query event(endUser(x,y,n,k)) ==> event(beginGateway(x,y,n))
+goal reachable: begin(beginGateway(ID_i_1[],ID_GWN[],Nu_1)) -> end(endUser(ID_i_1[],ID_GWN[],Nu_1,kdf(myConcat4(bitstring_of_key(point2key(exp(exp(g,dU_1),dG_1))),bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1),myConcat3(hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_nonce(Ng_1))),bitstring_of_identity(ID_i_1[]),bitstring_of_identity(ID_GWN[]))))))
+Abbreviations:
+Nu_1 = Nu[!1 = @sid,s_gwn = s_gwn_1[],E_curr = initial_epoch[],PID_rec = pid_init[],X_i_rec = X_i[]]
+dU_1 = dU[!1 = @sid,s_gwn = s_gwn_1[],E_curr = initial_epoch[],PID_rec = pid_init[],X_i_rec = X_i[]]
+R_1 = R[!1 = @sid,s_gwn = s_gwn_1[],E_curr = initial_epoch[],PID_rec = pid_init[],X_i_rec = X_i[]]
+S_1 = S[!1 = @sid,s_gwn = s_gwn_1[],E_curr = initial_epoch[],PID_rec = pid_init[],X_i_rec = X_i[]]
+T1_1 = T1[!1 = @sid,s_gwn = s_gwn_1[],E_curr = initial_epoch[],PID_rec = pid_init[],X_i_rec = X_i[]]
+dG_1 = dG[s_stored = s_gwn_1[],x_stored = X_i[],E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i_1[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[])))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[])))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i_1[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1]
+Ng_1 = Ng[s_stored = s_gwn_1[],x_stored = X_i[],E_user = initial_epoch[],Auth_U_rec = hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat4(aenc(myConcat4(bitstring_of_identity(ID_i_1[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[])))),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_nonce(Nu_1),bitstring_of_epoch(initial_epoch[])))),M1_rec = senc(myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_timestamp(T1_1),bitstring_of_nonce(Nu_1),myConcat(hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat4(bitstring_of_group(exp(g,dU_1)),bitstring_of_nonce(Nu_1),bitstring_of_timestamp(T1_1),myConcat(bitstring_of_epoch(initial_epoch[]),bitstring_of_identity(ID_GWN[])))),bitstring_of_epoch(initial_epoch[]))),pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[])))),TempID_rec = aenc(myConcat4(bitstring_of_identity(ID_i_1[]),R_1,S_1,myConcat(bitstring_of_epoch(initial_epoch[]),hmac(pbkdf2(bitstring_of_key(X_i[]),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_salt(s_gwn_1[]))),myConcat(bitstring_of_identity(ID_i_1[]),bitstring_of_epoch(initial_epoch[]))))),pk(SK_GWN_enc[])),!1 = @sid_1]
+RESULT event(endUser(x,y,n,k)) ==> event(beginGateway(x,y,n)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(endUser(x,y,n,k)) ==> event(beginGateway(x,y,n)) is true.
+
+--------------------------------------------------------------
+
+                                                                                                                        
+┌──(vinod㉿vinod)-[~/…/AKA-IIoT(HAn-enh)/ProVerif-Code/ProVerif-Final-Files-V3-plus/Final]
+└─$ 
+
+
