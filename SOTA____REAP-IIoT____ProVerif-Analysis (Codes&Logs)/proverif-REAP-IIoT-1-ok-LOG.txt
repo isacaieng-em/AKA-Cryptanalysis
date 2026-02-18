@@ -1,0 +1,468 @@
+                                                                                                    
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/REAP-IIoT]
+└─# proverif proverif-REAP-IIoT-1.pv  
+Linear part: No equation.
+Convergent part:
+XOR(x,XOR(x,y)) = y
+Completing equations...
+Completed equations:
+XOR(x,XOR(x,y)) = y
+Process 0 (that is, the initial process):
+(
+    {1}!
+    {2}let U_ID: id = SID_o in
+    {3}let MySP: bitstring = SP_U in
+    {4}let TargetSD: id = SID_SD in
+    {5}let MySID: id = SID_o in
+    {6}new Ra: nonce;
+    {7}new Ta: timestamp;
+    {8}new Raa: nonce;
+    {9}event UserStarted(U_ID,TargetSD,Ra);
+    {10}let Kb: bitstring = MySP in
+    {11}let AD_b: bitstring = id_to_bs(MySID) in
+    {12}let IV_b: bitstring = (time_to_bs(Ta),nonce_to_bs(Raa)) in
+    {13}let Ptx_a: bitstring = concat_msg1(Ra,TargetSD) in
+    {14}let CTx_a: bitstring = aegis_enc(Kb,IV_b,AD_b,Ptx_a) in
+    {15}out(c, (Ta,MySID,CTx_a,Ra));
+    {16}in(c, (Tc: timestamp,CTx_f: bitstring));
+    {17}let UP_g: bitstring = H((MySP,MySID,Ra)) in
+    {18}let Kf: bitstring = UP_g in
+    {19}let IV_f: bitstring = UP_g in
+    {20}let AD_f: bitstring = id_to_bs(TargetSD) in
+    {21}let Ptx_f: bitstring = aegis_dec(CTx_f,Kf,IV_f,AD_f) in
+    {22}let SK_y: bitstring = H(concat_sk(UP_g,Ptx_f,Tc)) in
+    {23}event UserCompleted(U_ID,TargetSD,SK_y);
+    {24}out(c, aegis_enc(MySP,UP_g,UP_g,SK_y))
+) | (
+    {25}!
+    {26}let UserSP: bitstring = SP_U in
+    {27}let SD_SP: bitstring = SP_SD in
+    {28}in(c, (Ta_1: timestamp,RecvSID: id,CTx_a_1: bitstring,RecvRa: nonce));
+    {29}if (RecvSID = SID_o) then
+    {30}let Kb_1: bitstring = UserSP in
+    {31}let AD_b_1: bitstring = id_to_bs(RecvSID) in
+    {32}let IV_b_1: bitstring = (time_to_bs(Ta_1),nonce_to_bs(RecvRa)) in
+    {33}new Rb: nonce;
+    {34}new Tb: timestamp;
+    {35}new Rbb: nonce;
+    {36}let UP_g_1: bitstring = H((UserSP,RecvSID,RecvRa)) in
+    {37}let Kd: bitstring = XOR(SD_SP,id_to_bs(SID_SD)) in
+    {38}let IV_d: bitstring = (time_to_bs(Tb),nonce_to_bs(Rbb)) in
+    {39}let payload_b: bitstring = concat_msg2(Rb,UP_g_1) in
+    {40}let CTx_b: bitstring = aegis_enc(Kd,IV_d,nonce_to_bs(Rbb),payload_b) in
+    {41}event GWAccepted(SID_o,SID_SD,RecvRa);
+    {42}out(c, (Tb,CTx_b,Rbb))
+) | (
+    {43}!
+    {44}let DeviceID: id = SID_SD in
+    {45}let DeviceSP: bitstring = SP_SD in
+    {46}in(c, (Tb_1: timestamp,CTx_b_1: bitstring,Rbb_1: nonce));
+    {47}let Ke: bitstring = XOR(DeviceSP,id_to_bs(DeviceID)) in
+    {48}let IV_e: bitstring = (time_to_bs(Tb_1),nonce_to_bs(Rbb_1)) in
+    {49}let payload_dec: bitstring = aegis_dec(CTx_b_1,Ke,IV_e,nonce_to_bs(Rbb_1)) in
+    {50}let concat_msg2(RecvRb: nonce,RecvUP_g: bitstring) = payload_dec in
+    {51}new Tc_1: timestamp;
+    {52}new Rc: nonce;
+    {53}let Ptx_f_1: bitstring = XOR(nonce_to_bs(RecvRb),XOR(nonce_to_bs(Rc),XOR(id_to_bs(DeviceID),DeviceSP))) in
+    {54}let Kf_1: bitstring = RecvUP_g in
+    {55}let IV_f_1: bitstring = RecvUP_g in
+    {56}let AD_f_1: bitstring = id_to_bs(DeviceID) in
+    {57}let CTx_f_1: bitstring = aegis_enc(Kf_1,IV_f_1,AD_f_1,Ptx_f_1) in
+    {58}let SK_x: bitstring = H(concat_sk(RecvUP_g,Ptx_f_1,Tc_1)) in
+    {59}event SDAccepted(DeviceID,Rc,RecvRb);
+    {60}event SDCompleted(DeviceID,SK_x);
+    {61}out(c, (Tc_1,CTx_f_1))
+) | (
+    {62}phase 1;
+    {63}out(c, SP_U);
+    {64}out(c, SP_SD)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+(
+    {1}!
+    {6}new Ra: nonce;
+    {7}new Ta: timestamp;
+    {8}new Raa: nonce;
+    {4}let TargetSD: id = SID_SD in
+    {2}let U_ID: id = SID_o in
+    {9}event UserStarted(U_ID,TargetSD,Ra);
+    {13}let Ptx_a: bitstring = concat_msg1(Ra,TargetSD) in
+    {12}let IV_b: bitstring = (time_to_bs(Ta),nonce_to_bs(Raa)) in
+    {5}let MySID: id = SID_o in
+    {11}let AD_b: bitstring = id_to_bs(MySID) in
+    {3}let MySP: bitstring = SP_U in
+    {10}let Kb: bitstring = MySP in
+    {14}let CTx_a: bitstring = aegis_enc(Kb,IV_b,AD_b,Ptx_a) in
+    {15}out(c, (Ta,MySID,CTx_a,Ra));
+    {16}in(c, (Tc: timestamp,CTx_f: bitstring));
+    {20}let AD_f: bitstring = id_to_bs(TargetSD) in
+    {17}let UP_g: bitstring = H((MySP,MySID,Ra)) in
+    {19}let IV_f: bitstring = UP_g in
+    {18}let Kf: bitstring = UP_g in
+    {21}let Ptx_f: bitstring = aegis_dec(CTx_f,Kf,IV_f,AD_f) in
+    {22}let SK_y: bitstring = H(concat_sk(UP_g,Ptx_f,Tc)) in
+    {23}event UserCompleted(U_ID,TargetSD,SK_y);
+    {24}out(c, aegis_enc(MySP,UP_g,UP_g,SK_y))
+) | (
+    {25}!
+    {28}in(c, (Ta_1: timestamp,RecvSID: id,CTx_a_1: bitstring,RecvRa: nonce));
+    {29}if (RecvSID = SID_o) then
+    {33}new Rb: nonce;
+    {34}new Tb: timestamp;
+    {35}new Rbb: nonce;
+    {41}event GWAccepted(SID_o,SID_SD,RecvRa);
+    {26}let UserSP: bitstring = SP_U in
+    {36}let UP_g_1: bitstring = H((UserSP,RecvSID,RecvRa)) in
+    {39}let payload_b: bitstring = concat_msg2(Rb,UP_g_1) in
+    {38}let IV_d: bitstring = (time_to_bs(Tb),nonce_to_bs(Rbb)) in
+    {27}let SD_SP: bitstring = SP_SD in
+    {37}let Kd: bitstring = XOR(SD_SP,id_to_bs(SID_SD)) in
+    {40}let CTx_b: bitstring = aegis_enc(Kd,IV_d,nonce_to_bs(Rbb),payload_b) in
+    {42}out(c, (Tb,CTx_b,Rbb))
+) | (
+    {43}!
+    {46}in(c, (Tb_1: timestamp,CTx_b_1: bitstring,Rbb_1: nonce));
+    {48}let IV_e: bitstring = (time_to_bs(Tb_1),nonce_to_bs(Rbb_1)) in
+    {45}let DeviceSP: bitstring = SP_SD in
+    {44}let DeviceID: id = SID_SD in
+    {47}let Ke: bitstring = XOR(DeviceSP,id_to_bs(DeviceID)) in
+    {49}let payload_dec: bitstring = aegis_dec(CTx_b_1,Ke,IV_e,nonce_to_bs(Rbb_1)) in
+    {50}let concat_msg2(RecvRb: nonce,RecvUP_g: bitstring) = payload_dec in
+    {51}new Tc_1: timestamp;
+    {52}new Rc: nonce;
+    {59}event SDAccepted(DeviceID,Rc,RecvRb);
+    {53}let Ptx_f_1: bitstring = XOR(nonce_to_bs(RecvRb),XOR(nonce_to_bs(Rc),XOR(id_to_bs(DeviceID),DeviceSP))) in
+    {58}let SK_x: bitstring = H(concat_sk(RecvUP_g,Ptx_f_1,Tc_1)) in
+    {60}event SDCompleted(DeviceID,SK_x);
+    {56}let AD_f_1: bitstring = id_to_bs(DeviceID) in
+    {55}let IV_f_1: bitstring = RecvUP_g in
+    {54}let Kf_1: bitstring = RecvUP_g in
+    {57}let CTx_f_1: bitstring = aegis_enc(Kf_1,IV_f_1,AD_f_1,Ptx_f_1) in
+    {61}out(c, (Tc_1,CTx_f_1))
+) | (
+    {62}phase 1;
+    {63}out(c, SP_U);
+    {64}out(c, SP_SD)
+)
+
+-- Query not attacker(sk) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not attacker(sk)
+goal reachable: attacker(sk) -> attacker(sk)
+
+Derivation:
+
+1. We assume as hypothesis that
+attacker(sk).
+
+2. By 1, attacker(sk).
+The goal is reached, represented in the following fact:
+attacker(sk).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+The attacker has the message a.
+A trace has been found.
+RESULT not attacker(sk) is false.
+-- Query not attacker_p1(ra) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not attacker_p1(ra)
+goal reachable: attacker_p1(ra) -> attacker_p1(ra)
+
+Derivation:
+
+1. We assume as hypothesis that
+attacker_p1(ra).
+
+2. By 1, attacker_p1(ra).
+The goal is reached, represented in the following fact:
+attacker_p1(ra).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+out(c, ~M) with ~M = SP_U at {63}
+
+out(c, ~M_1) with ~M_1 = SP_SD at {64}
+
+The attacker has the message a in phase 1.
+A trace has been found.
+RESULT not attacker_p1(ra) is false.
+-- Query not attacker_p1(sk) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not attacker_p1(sk)
+goal reachable: attacker_p1(sk) -> attacker_p1(sk)
+
+Derivation:
+
+1. We assume as hypothesis that
+attacker_p1(sk).
+
+2. By 1, attacker_p1(sk).
+The goal is reached, represented in the following fact:
+attacker_p1(sk).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+out(c, ~M) with ~M = SP_U at {63}
+
+out(c, ~M_1) with ~M_1 = SP_SD at {64}
+
+The attacker has the message a in phase 1.
+A trace has been found.
+RESULT not attacker_p1(sk) is false.
+-- Query inj-event(GWAccepted(u,sd,ra)) ==> inj-event(UserStarted(u,sd,ra)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query inj-event(GWAccepted(u,sd,ra)) ==> inj-event(UserStarted(u,sd,ra))
+goal reachable: attacker(Ta_2) && attacker(CTx_a_2) && attacker(ra) -> end(@occ41_1,GWAccepted(SID_o[],SID_SD[],ra))
+Abbreviations:
+@occ41_1 = @occ41[RecvRa = ra,CTx_a_1 = CTx_a_2,RecvSID = SID_o[],Ta_1 = Ta_2,!1 = @sid]
+
+Derivation:
+Abbreviations:
+@occ41_1 = @occ41[RecvRa = ra,CTx_a_1 = CTx_a_2,RecvSID = SID_o[],Ta_1 = Ta_2,!1 = @sid]
+
+1. We assume as hypothesis that
+attacker(ra).
+
+2. We assume as hypothesis that
+attacker(CTx_a_2).
+
+3. The attacker initially knows SID_o[].
+attacker(SID_o[]).
+
+4. We assume as hypothesis that
+attacker(Ta_2).
+
+5. By 4, the attacker may know Ta_2.
+By 3, the attacker may know SID_o[].
+By 2, the attacker may know CTx_a_2.
+By 1, the attacker may know ra.
+Using the function 4-tuple the attacker may obtain (Ta_2,SID_o[],CTx_a_2,ra).
+attacker((Ta_2,SID_o[],CTx_a_2,ra)).
+
+6. The message (Ta_2,SID_o[],CTx_a_2,ra) that the attacker may have by 5 may be received at input {28}.
+So event GWAccepted(SID_o[],SID_SD[],ra) may be executed at {41} in session @sid.
+end(@occ41_1,GWAccepted(SID_o[],SID_SD[],ra)).
+
+7. By 6, end(@occ41_1,GWAccepted(SID_o[],SID_SD[],ra)).
+The goal is reached, represented in the following fact:
+end(@occ41_1,GWAccepted(SID_o[],SID_SD[],ra)).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+in(c, (a,SID_o,a_1,a_2)) at {28} in copy a_3
+
+new Rb: nonce creating Rb_1 at {33} in copy a_3
+
+new Tb: timestamp creating Tb_2 at {34} in copy a_3
+
+new Rbb: nonce creating Rbb_2 at {35} in copy a_3
+
+event GWAccepted(SID_o,SID_SD,a_2) at {41} in copy a_3 (goal)
+
+The event GWAccepted(SID_o,SID_SD,a_2) is executed at {41} in copy a_3.
+A trace has been found.
+RESULT inj-event(GWAccepted(u,sd,ra)) ==> inj-event(UserStarted(u,sd,ra)) is false.
+RESULT (even event(GWAccepted(u,sd,ra)) ==> event(UserStarted(u,sd,ra)) is false.)
+-- Query inj-event(UserCompleted(u,sd,sk)) ==> inj-event(SDCompleted(sd,sk)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query inj-event(UserCompleted(u,sd,sk)) ==> inj-event(SDCompleted(sd,sk))
+goal reachable: attacker(Tc_2) && begin(SDCompleted(SID_SD[],H(concat_sk(H((SP_U[],SID_o[],Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))),Tc_3))),@occ60_1) && attacker(Ta_2) && attacker(CTx_a_2) -> end(@occ23_1,UserCompleted(SID_o[],SID_SD[],H(concat_sk(H((SP_U[],SID_o[],Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))),Tc_2))))
+Abbreviations:
+Ra_1 = Ra[!1 = @sid]
+Rb_1 = Rb[RecvRa = Ra_1,CTx_a_1 = CTx_a_2,RecvSID = SID_o[],Ta_1 = Ta_2,!1 = @sid_1]
+Rbb_2 = Rbb[RecvRa = Ra_1,CTx_a_1 = CTx_a_2,RecvSID = SID_o[],Ta_1 = Ta_2,!1 = @sid_1]
+Tb_2 = Tb[RecvRa = Ra_1,CTx_a_1 = CTx_a_2,RecvSID = SID_o[],Ta_1 = Ta_2,!1 = @sid_1]
+Rc_1 = Rc[Rbb_1 = Rbb_2,CTx_b_1 = aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Tb_1 = Tb_2,!1 = @sid_2]
+@occ23_1 = @occ23[CTx_f = aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[])))),Tc = Tc_2,!1 = @sid]
+Tc_3 = Tc_1[Rbb_1 = Rbb_2,CTx_b_1 = aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Tb_1 = Tb_2,!1 = @sid_2]
+@occ60_1 = @occ60[Rbb_1 = Rbb_2,CTx_b_1 = aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Tb_1 = Tb_2,!1 = @sid_2]
+
+Derivation:
+Abbreviations:
+Ra_1 = Ra[!1 = @sid]
+Rb_1 = Rb[RecvRa = Ra_1,CTx_a_1 = CTx_a_2,RecvSID = SID_o[],Ta_1 = Ta_2,!1 = @sid_1]
+Rbb_2 = Rbb[RecvRa = Ra_1,CTx_a_1 = CTx_a_2,RecvSID = SID_o[],Ta_1 = Ta_2,!1 = @sid_1]
+Tb_2 = Tb[RecvRa = Ra_1,CTx_a_1 = CTx_a_2,RecvSID = SID_o[],Ta_1 = Ta_2,!1 = @sid_1]
+Rc_1 = Rc[Rbb_1 = Rbb_2,CTx_b_1 = aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Tb_1 = Tb_2,!1 = @sid_2]
+@occ23_1 = @occ23[CTx_f = aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[])))),Tc = Tc_2,!1 = @sid]
+Tc_3 = Tc_1[Rbb_1 = Rbb_2,CTx_b_1 = aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Tb_1 = Tb_2,!1 = @sid_2]
+@occ60_1 = @occ60[Rbb_1 = Rbb_2,CTx_b_1 = aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Tb_1 = Tb_2,!1 = @sid_2]
+Ta_3 = Ta[!1 = @sid]
+Raa_1 = Raa[!1 = @sid]
+
+1. The message (Ta_3,SID_o[],aegis_enc(SP_U[],(time_to_bs(Ta_3),nonce_to_bs(Raa_1)),id_to_bs(SID_o[]),concat_msg1(Ra_1,SID_SD[])),Ra_1) may be sent to the attacker at output {15}.
+attacker((Ta_3,SID_o[],aegis_enc(SP_U[],(time_to_bs(Ta_3),nonce_to_bs(Raa_1)),id_to_bs(SID_o[]),concat_msg1(Ra_1,SID_SD[])),Ra_1)).
+
+2. By 1, the attacker may know (Ta_3,SID_o[],aegis_enc(SP_U[],(time_to_bs(Ta_3),nonce_to_bs(Raa_1)),id_to_bs(SID_o[]),concat_msg1(Ra_1,SID_SD[])),Ra_1).
+Using the function 4-proj-4-tuple the attacker may obtain Ra_1.
+attacker(Ra_1).
+
+3. We assume as hypothesis that
+attacker(CTx_a_2).
+
+4. The attacker initially knows SID_o[].
+attacker(SID_o[]).
+
+5. We assume as hypothesis that
+attacker(Ta_2).
+
+6. By 5, the attacker may know Ta_2.
+By 4, the attacker may know SID_o[].
+By 3, the attacker may know CTx_a_2.
+By 2, the attacker may know Ra_1.
+Using the function 4-tuple the attacker may obtain (Ta_2,SID_o[],CTx_a_2,Ra_1).
+attacker((Ta_2,SID_o[],CTx_a_2,Ra_1)).
+
+7. The message (Ta_2,SID_o[],CTx_a_2,Ra_1) that the attacker may have by 6 may be received at input {28}.
+So the message (Tb_2,aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Rbb_2) may be sent to the attacker at output {42}.
+attacker((Tb_2,aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Rbb_2)).
+
+8. By 7, the attacker may know (Tb_2,aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Rbb_2).
+Using the function 3-proj-3-tuple the attacker may obtain Rbb_2.
+attacker(Rbb_2).
+
+9. By 7, the attacker may know (Tb_2,aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Rbb_2).
+Using the function 2-proj-3-tuple the attacker may obtain aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))).
+attacker(aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1))))).
+
+10. By 7, the attacker may know (Tb_2,aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Rbb_2).
+Using the function 1-proj-3-tuple the attacker may obtain Tb_2.
+attacker(Tb_2).
+
+11. By 10, the attacker may know Tb_2.
+By 9, the attacker may know aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))).
+By 8, the attacker may know Rbb_2.
+Using the function 3-tuple the attacker may obtain (Tb_2,aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Rbb_2).
+attacker((Tb_2,aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Rbb_2)).
+
+12. The message (Tb_2,aegis_enc(XOR(SP_SD[],id_to_bs(SID_SD[])),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U[],SID_o[],Ra_1)))),Rbb_2) that the attacker may have by 11 may be received at input {46}.
+The event SDCompleted(SID_SD[],H(concat_sk(H((SP_U[],SID_o[],Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))),Tc_3))) (with occurrence name @occ60_1) may be executed at {60}.
+So the message (Tc_3,aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))))) may be sent to the attacker at output {61}.
+attacker((Tc_3,aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[])))))).
+
+13. By 12, the attacker may know (Tc_3,aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))))).
+Using the function 2-proj-2-tuple the attacker may obtain aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[])))).
+attacker(aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))))).
+
+14. We assume as hypothesis that
+attacker(Tc_2).
+
+15. By 14, the attacker may know Tc_2.
+By 13, the attacker may know aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[])))).
+Using the function 2-tuple the attacker may obtain (Tc_2,aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))))).
+attacker((Tc_2,aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[])))))).
+
+16. The message (Tc_2,aegis_enc(H((SP_U[],SID_o[],Ra_1)),H((SP_U[],SID_o[],Ra_1)),id_to_bs(SID_SD[]),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))))) that the attacker may have by 15 may be received at input {16}.
+So event UserCompleted(SID_o[],SID_SD[],H(concat_sk(H((SP_U[],SID_o[],Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))),Tc_2))) may be executed at {23} in session @sid.
+end(@occ23_1,UserCompleted(SID_o[],SID_SD[],H(concat_sk(H((SP_U[],SID_o[],Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))),Tc_2)))).
+
+17. By 16, end(@occ23_1,UserCompleted(SID_o[],SID_SD[],H(concat_sk(H((SP_U[],SID_o[],Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))),Tc_2)))).
+The goal is reached, represented in the following fact:
+end(@occ23_1,UserCompleted(SID_o[],SID_SD[],H(concat_sk(H((SP_U[],SID_o[],Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD[]),SP_SD[]))),Tc_2)))).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new Ra: nonce creating Ra_1 at {6} in copy a
+
+new Ta: timestamp creating Ta_2 at {7} in copy a
+
+new Raa: nonce creating Raa_1 at {8} in copy a
+
+event UserStarted(SID_o,SID_SD,Ra_1) at {9} in copy a
+
+out(c, (~M,~M_1,~M_2,~M_3)) with ~M = Ta_2, ~M_1 = SID_o, ~M_2 = aegis_enc(SP_U,(time_to_bs(Ta_2),nonce_to_bs(Raa_1)),id_to_bs(SID_o),concat_msg1(Ra_1,SID_SD)), ~M_3 = Ra_1 at {15} in copy a
+
+in(c, (a_1,SID_o,a_2,~M_3)) with ~M_3 = Ra_1 at {28} in copy a_3
+
+new Rb: nonce creating Rb_1 at {33} in copy a_3
+
+new Tb: timestamp creating Tb_2 at {34} in copy a_3
+
+new Rbb: nonce creating Rbb_2 at {35} in copy a_3
+
+event GWAccepted(SID_o,SID_SD,Ra_1) at {41} in copy a_3
+
+out(c, (~M_4,~M_5,~M_6)) with ~M_4 = Tb_2, ~M_5 = aegis_enc(XOR(SP_SD,id_to_bs(SID_SD)),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U,SID_o,Ra_1)))), ~M_6 = Rbb_2 at {42} in copy a_3
+
+in(c, (~M_4,~M_5,~M_6)) with ~M_4 = Tb_2, ~M_5 = aegis_enc(XOR(SP_SD,id_to_bs(SID_SD)),(time_to_bs(Tb_2),nonce_to_bs(Rbb_2)),nonce_to_bs(Rbb_2),concat_msg2(Rb_1,H((SP_U,SID_o,Ra_1)))), ~M_6 = Rbb_2 at {46} in copy a_4
+
+new Tc_1: timestamp creating Tc_2 at {51} in copy a_4
+
+new Rc: nonce creating Rc_1 at {52} in copy a_4
+
+event SDAccepted(SID_SD,Rc_1,Rb_1) at {59} in copy a_4
+
+event SDCompleted(SID_SD,H(concat_sk(H((SP_U,SID_o,Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD),SP_SD))),Tc_2))) at {60} in copy a_4
+
+out(c, (~M_7,~M_8)) with ~M_7 = Tc_2, ~M_8 = aegis_enc(H((SP_U,SID_o,Ra_1)),H((SP_U,SID_o,Ra_1)),id_to_bs(SID_SD),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD),SP_SD)))) at {61} in copy a_4
+
+in(c, (a_5,~M_8)) with ~M_8 = aegis_enc(H((SP_U,SID_o,Ra_1)),H((SP_U,SID_o,Ra_1)),id_to_bs(SID_SD),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD),SP_SD)))) at {16} in copy a
+
+event UserCompleted(SID_o,SID_SD,H(concat_sk(H((SP_U,SID_o,Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD),SP_SD))),a_5))) at {23} in copy a (goal)
+
+The event UserCompleted(SID_o,SID_SD,H(concat_sk(H((SP_U,SID_o,Ra_1)),XOR(nonce_to_bs(Rb_1),XOR(nonce_to_bs(Rc_1),XOR(id_to_bs(SID_SD),SP_SD))),a_5))) is executed at {23} in copy a.
+A trace has been found.
+RESULT inj-event(UserCompleted(u,sd,sk)) ==> inj-event(SDCompleted(sd,sk)) is false.
+RESULT (even event(UserCompleted(u,sd,sk)) ==> event(SDCompleted(sd,sk)) is false.)
+-- Query not attacker_p1(SID_o[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not attacker_p1(SID_o[])
+goal reachable: attacker_p1(SID_o[])
+
+Derivation:
+
+1. The attacker initially knows SID_o[] in phase 1.
+attacker_p1(SID_o[]).
+
+2. By 1, attacker_p1(SID_o[]).
+The goal is reached, represented in the following fact:
+attacker_p1(SID_o[]).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+The attacker has the message SID_o in phase 1.
+A trace has been found.
+RESULT not attacker_p1(SID_o[]) is false.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not attacker(sk) is false.
+
+Query not attacker_p1(ra) is false.
+
+Query not attacker_p1(sk) is false.
+
+Query inj-event(GWAccepted(u,sd,ra)) ==> inj-event(UserStarted(u,sd,ra)) is false.
+
+Query inj-event(UserCompleted(u,sd,sk)) ==> inj-event(SDCompleted(sd,sk)) is false.
+
+Query not attacker_p1(SID_o[]) is false.
+
+--------------------------------------------------------------
+
+                                                                                                              
+┌──(root㉿vinod)-[/home/vinod/myResearchPapers/REAP-IIoT]
+└─# 
+
+

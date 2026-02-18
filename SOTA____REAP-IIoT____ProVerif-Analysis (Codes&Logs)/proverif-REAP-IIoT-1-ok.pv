@@ -1,0 +1,242 @@
+(* =============================================================================
+   Protocol: REAP-IIoT (FIXED VERSION)
+   Objective: Verification of Security Flaws 
+   Target: ProVerif 2.04
+   ============================================================================= *)
+
+(* 1. CHANNELS & TYPES *)
+free c: channel.
+
+type timestamp.
+type id.
+type nonce.
+type key.
+
+(* 2. CONSTANTS & PUBLIC DATA *)
+(* 'free' declares a public name/value known to the attacker by default *)
+free TDL: timestamp. 
+free SID_SD: id.     (* Smart Device ID *)
+free SID_o: id.      (* User Pseudo-ID *)
+
+(* 3. SECRET KEYS *)
+(* [private] ensures these are not initially known to the attacker *)
+free SP_U: bitstring [private].    
+free SP_SD: bitstring [private].   
+
+(* 4. FUNCTIONS & CRYPTOGRAPHIC PRIMITIVES *)
+
+(* Hash Function *)
+fun H(bitstring): bitstring.
+
+(* Type Conversion Helpers *)
+fun id_to_bs(id): bitstring [data].
+fun time_to_bs(timestamp): bitstring [data].
+fun nonce_to_bs(nonce): bitstring [data].
+
+(* XOR Operation *)
+(* Modeled simply to allow verification. 
+   We define a function XOR and an equation for basic cancellation. *)
+fun XOR(bitstring, bitstring): bitstring.
+equation forall x: bitstring, y: bitstring; XOR(x, XOR(x, y)) = y.
+
+(* AEGIS Encryption Simulation *)
+(* Usage: aegis_enc(Key, IV, AD, Payload) *)
+fun aegis_enc(bitstring, bitstring, bitstring, bitstring): bitstring.
+
+(* Decryption Destructor *)
+(* If the inputs match the encryption logic, it returns the payload 'm' *)
+reduc forall k: bitstring, iv: bitstring, ad: bitstring, m: bitstring; 
+      aegis_dec(aegis_enc(k, iv, ad, m), k, iv, ad) = m.
+
+(* Concatenation / Tuple Helpers *)
+(* These help pack multiple values into the 'bitstring' type expected by XOR/Enc *)
+fun concat_msg1(nonce, id): bitstring [data].
+fun concat_msg2(nonce, bitstring): bitstring [data].
+fun concat_sk(bitstring, bitstring, timestamp): bitstring [data].
+
+(* 5. EVENTS FOR SECURITY PROPERTIES *)
+event UserStarted(id, id, nonce).          
+event UserCompleted(id, id, bitstring).    
+event GWAccepted(id, id, nonce).           
+event SDAccepted(id, nonce, nonce).        
+event SDCompleted(id, bitstring).          
+
+(* 6. QUERIES (VULNERABILITY CHECKS) *)
+
+(* A. Secrecy Checks *)
+(* Check A1: Can attacker find the Session Key in Phase 0? *)
+query sk: bitstring; attacker(sk) phase 0.
+
+(* Check A2: Can attacker find the User's Random Nonce (Ra)? *)
+(* EXPECTED RESULT: TRUE (Vulnerable) *)
+query ra: nonce; attacker(ra).
+
+(* Check A3: Perfect Forward Secrecy *)
+(* Can attacker find the key from Phase 0 after compromising secrets in Phase 1? *)
+(* EXPECTED RESULT: TRUE (Vulnerable) *)
+query sk: bitstring; attacker(sk) phase 1.
+
+(* B. Authentication Checks *)
+(* Check B1: User-to-Gateway Auth *)
+(* EXPECTED RESULT: FALSE (Vulnerable due to MITM/Replay) *)
+query u: id, sd: id, ra: nonce; 
+    inj-event(GWAccepted(u, sd, ra)) ==> inj-event(UserStarted(u, sd, ra)).
+
+(* Check B2: Gateway-to-User Auth *)
+query u: id, sd: id, sk: bitstring; 
+    inj-event(UserCompleted(u, sd, sk)) ==> inj-event(SDCompleted(sd, sk)).
+
+(* C. Privacy Check *)
+(* Check C1: Is the User's Pseudo-ID (SID_o) visible? *)
+(* EXPECTED RESULT: TRUE (Privacy Failure) *)
+query attacker(SID_o).
+
+
+(* 7. PROCESS MACROS *)
+
+(* --- Process: User (U_a) --- *)
+let ProcessUser(U_ID: id, MySP: bitstring, TargetSD: id, MySID: id) =
+    (* 1. Generate Nonces *)
+    new Ra: nonce;
+    new Ta: timestamp;
+    new Raa: nonce; 
+    
+    (* Log Start *)
+    event UserStarted(U_ID, TargetSD, Ra);
+
+    (* 2. Prepare Encryption *)
+    (* Kb = SP_Ua *)
+    let Kb = MySP in
+    let AD_b = id_to_bs(MySID) in 
+    (* IV construction simplified for bitstring compatibility *)
+    let IV_b = (time_to_bs(Ta), nonce_to_bs(Raa)) in 
+    
+    (* Payload = Ra || SID_SD *)
+    let Ptx_a = concat_msg1(Ra, TargetSD) in
+    
+    (* Encrypt *)
+    let CTx_a = aegis_enc(Kb, IV_b, AD_b, Ptx_a) in
+    
+    (* 3. Send Message 1 *)
+    (* VULNERABILITY: Ra is sent in plaintext as the last element *)
+    out(c, (Ta, MySID, CTx_a, Ra));
+
+    (* 4. Receive Message 3 *)
+    in(c, (Tc: timestamp, CTx_f: bitstring));
+    
+    (* 5. Verify and Derive SK *)
+    (* UP_g = H(SP_U || SID || Ra) *)
+    let UP_g = H((MySP, MySID, Ra)) in
+    
+    (* Decrypt params *)
+    let Kf = UP_g in 
+    let IV_f = UP_g in 
+    let AD_f = id_to_bs(TargetSD) in
+    
+    let Ptx_f = aegis_dec(CTx_f, Kf, IV_f, AD_f) in
+    
+    (* Compute SK = H(UP_g || Ptx_f || Tc) *)
+    let SK_y = H(concat_sk(UP_g, Ptx_f, Tc)) in
+    
+    (* Log Completion *)
+    event UserCompleted(U_ID, TargetSD, SK_y);
+    
+    (* Expose SK encrypted with long-term secret to allow PFS check logic *)
+    out(c, aegis_enc(MySP, UP_g, UP_g, SK_y)).
+
+
+(* --- Process: Gateway (GW) --- *)
+let ProcessGateway(UserSP: bitstring, SD_SP: bitstring) =
+    (* 1. Receive Message 1 *)
+    in(c, (Ta: timestamp, RecvSID: id, CTx_a: bitstring, RecvRa: nonce));
+    
+    (* Check SID *)
+    if RecvSID = SID_o then
+    
+    (* 2. Decrypt/Verify *)
+    let Kb = UserSP in
+    let AD_b = id_to_bs(RecvSID) in
+    let IV_b = (time_to_bs(Ta), nonce_to_bs(RecvRa)) in 
+    
+    (* Note: In the flaw model, GW trusts the plaintext RecvRa to check integrity *)
+    (* We proceed assuming auth passed or attacker spoofed it *)
+    
+    (* 3. Generate Params for SD *)
+    new Rb: nonce;
+    new Tb: timestamp;
+    new Rbb: nonce;
+    
+    (* UP_g = H(SP_U || SID || Ra) *)
+    let UP_g = H((UserSP, RecvSID, RecvRa)) in
+    
+    (* Kd = SP_SD XOR SID_SD *)
+    let Kd = XOR(SD_SP, id_to_bs(SID_SD)) in
+    let IV_d = (time_to_bs(Tb), nonce_to_bs(Rbb)) in
+    
+    (* Encrypt for SD *)
+    (* Payload = Rb || UP_g *)
+    let payload_b = concat_msg2(Rb, UP_g) in
+    let CTx_b = aegis_enc(Kd, IV_d, nonce_to_bs(Rbb), payload_b) in
+    
+    event GWAccepted(SID_o, SID_SD, RecvRa);
+    
+    (* 4. Send Message 2 *)
+    out(c, (Tb, CTx_b, Rbb)).
+
+
+(* --- Process: Smart Device (SD_a) --- *)
+let ProcessSD(DeviceID: id, DeviceSP: bitstring) =
+    (* 1. Receive Message 2 *)
+    in(c, (Tb: timestamp, CTx_b: bitstring, Rbb: nonce));
+    
+    (* 2. Derive Key Kd *)
+    let Ke = XOR(DeviceSP, id_to_bs(DeviceID)) in
+    let IV_e = (time_to_bs(Tb), nonce_to_bs(Rbb)) in
+    
+    (* 3. Decrypt *)
+    let payload_dec = aegis_dec(CTx_b, Ke, IV_e, nonce_to_bs(Rbb)) in
+    let concat_msg2(RecvRb, RecvUP_g) = payload_dec in
+    
+    (* 4. Generate Params for Response *)
+    new Tc: timestamp;
+    new Rc: nonce;
+    
+    (* Ptx_f = Rb XOR Rc XOR SID_SD XOR SP_SD *)
+    (* We abstract the XOR chain for stability: just wrap them *)
+    let Ptx_f = XOR(nonce_to_bs(RecvRb), XOR(nonce_to_bs(Rc), XOR(id_to_bs(DeviceID), DeviceSP))) in
+    
+    (* 5. Encrypt for User *)
+    let Kf = RecvUP_g in
+    let IV_f = RecvUP_g in
+    let AD_f = id_to_bs(DeviceID) in
+    
+    let CTx_f = aegis_enc(Kf, IV_f, AD_f, Ptx_f) in
+    
+    (* Compute SK *)
+    let SK_x = H(concat_sk(RecvUP_g, Ptx_f, Tc)) in
+    
+    event SDAccepted(DeviceID, Rc, RecvRb);
+    event SDCompleted(DeviceID, SK_x);
+    
+    (* 6. Send Message 3 *)
+    out(c, (Tc, CTx_f)).
+
+
+(* 8. MAIN EXECUTION *)
+process
+    (* Setup Phase: 0 *)
+    (
+        (* Launch processes in parallel *)
+        ( !ProcessUser(SID_o, SP_U, SID_SD, SID_o) ) |
+        ( !ProcessGateway(SP_U, SP_SD) ) |
+        ( !ProcessSD(SID_SD, SP_SD) ) |
+        
+        (* PFS ATTACK SIMULATION (Phase 1) *)
+        (* Moves to Phase 1 and leaks long-term secrets *)
+        (
+            phase 1;
+            out(c, SP_U);
+            out(c, SP_SD)
+        )
+    )
+    
