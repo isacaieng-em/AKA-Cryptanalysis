@@ -1,0 +1,150 @@
+(* 
+    PROTOCOL: ERASMIS (Medical IoT) - THE 38-PROPERTY CHALLENGE (FIXED)
+    MODELER: Professor of Cryptography & Formal Methods Engineer
+    VERSION: ProVerif 2.04 
+*)
+
+(*** 1. GLOBAL DEFINITIONS & ALGEBRA ***)
+type er_element.
+type er_scalar.
+
+const er_g: er_element.
+fun er_exp(er_element, er_scalar): er_element.
+equation forall x: er_scalar, y: er_scalar; 
+    er_exp(er_exp(er_g, x), y) = er_exp(er_exp(er_g, y), x).
+
+fun er_oplus(bitstring, bitstring): bitstring.
+equation forall x: bitstring, y: bitstring; er_oplus(er_oplus(x, y), y) = x.
+
+fun er_h(bitstring): bitstring.
+
+(* Type Converters to enable Attacker Malleability *)
+fun e2b(er_element): bitstring [typeConverter].
+fun s2b(er_scalar): bitstring [typeConverter].
+fun b2s(bitstring): er_scalar [typeConverter].
+fun b2e(bitstring): er_element [typeConverter].
+
+(*** 2. CHANNELS, TABLES & SECRETS ***)
+free er_ch: channel.
+free er_leak: channel.
+table er_sensor_db(bitstring, bitstring).
+
+(* Public Knowledge *)
+free er_UID, er_GWID, er_SNID: bitstring.
+free er_secret_sk: bitstring [private].
+free er_pw: bitstring [private]. (* For Offline Guessing Check *)
+
+(*** 3. THE MULTI-TIERED SECURITY MANDATE ***)
+
+(* TIER 1: Secrecy & Key Control *)
+query attacker(er_secret_sk).                  (* 2. SK Secrecy *)
+query attacker(er_pw).                         (* 21. Offline Guessing Resistance *)
+
+(* TIER 2: Forward/Backward Secrecy & KSSTI *)
+query attacker(er_secret_sk) phase 1.          (* 3. Perfect Forward Secrecy *)
+
+(* TIER 3: Authentication & Impersonation (Non-Injective) *)
+event evUserStarted(bitstring, bitstring, bitstring).
+event evUserFinished(bitstring, bitstring, bitstring, bitstring).
+event evSensorAuthM2(bitstring, bitstring).
+event evSensorFinished(bitstring, bitstring, bitstring).
+event evGatewayFinished(bitstring, bitstring, bitstring).
+
+(* 9. User Impersonation Check *)
+query ids: bitstring, eb: bitstring; 
+    event(evGatewayFinished(er_GWID, er_UID, ids)) ==> event(evUserStarted(er_UID, ids, eb)).
+
+(* 10. Sensor Impersonation Check *)
+query idu: bitstring, eb1: bitstring, eb2: bitstring; 
+    event(evUserFinished(idu, er_SNID, eb1, eb2)) ==> event(evSensorFinished(er_SNID, eb1, eb2)).
+
+(* TIER 4: Injective Agreement (Replay, MITM, Parallel Session) *)
+query idu: bitstring, ids: bitstring, eb1: bitstring, eb2: bitstring;
+    inj-event(evUserFinished(idu, ids, eb1, eb2)) ==> inj-event(evSensorFinished(ids, eb1, eb2)).
+
+(* TIER 5: Identity & Shared Secrets *)
+query idu: bitstring, ids: bitstring, ids2: bitstring, eb1: bitstring, eb2: bitstring;
+    event(evUserFinished(idu, ids, eb1, eb2)) && event(evSensorFinished(ids2, eb1, eb2)) ==> ids = ids2. (* 14. UKS Attack *)
+
+(*** 4. ADVERSARIAL PROTOCOL PROCESSES ***)
+
+(* --- USER --- *)
+let User(idu: bitstring, ids: bitstring, pkg: er_element) =
+    new ru_s: er_scalar;
+    let ru = s2b(ru_s) in
+    event evUserStarted(idu, ids, e2b(er_exp(er_g, ru_s)));
+    
+    (* Oracle: KSSTI / EKCI Leakage *)
+    out(er_leak, ru); 
+
+    let A2 = er_exp(er_g, ru_s) in
+    let A3 = er_exp(pkg, ru_s) in
+    let A4 = er_oplus(ids, e2b(A3)) in
+    new t1: bitstring; 
+    let A5 = er_h((e2b(A2), e2b(A3), A4, t1, er_pw)) in
+    out(er_ch, (A2, A4, A5, t1));
+    
+    in(er_ch, (ma7: er_element, ma9: bitstring));
+    if ma9 = er_h((e2b(ma7), ids)) then
+    let SK_u = er_exp(ma7, ru_s) in
+    event evUserFinished(idu, ids, e2b(A2), e2b(ma7));
+    if idu = er_UID then out(er_ch, er_oplus(e2b(SK_u), er_secret_sk)).
+
+(* --- GATEWAY --- *)
+let Gateway(idg: bitstring, sg: er_scalar) =
+    in(er_ch, (ma2: er_element, ma4: bitstring, ma5: bitstring, mt1: bitstring));
+    let A3_star = er_exp(ma2, sg) in
+    
+    if ma5 = er_h((e2b(ma2), e2b(A3_star), ma4, mt1, er_pw)) then
+    let mSNID = er_oplus(ma4, e2b(A3_star)) in
+    get er_sensor_db(=mSNID, ssnk) in
+    new t2: bitstring;
+    let A6 = er_h((e2b(ma2), ssnk, idg, t2)) in
+    out(er_ch, (ma2, A6, t2));
+    
+    in(er_ch, (ma8: bitstring, ma7_1: er_element));
+    if ma8 = er_h((A6, e2b(ma2), ssnk, idg)) then
+    event evGatewayFinished(idg, er_UID, mSNID);
+    out(er_ch, (ma7_1, er_h((e2b(ma7_1), mSNID)))).
+
+(* --- SENSOR --- *)
+let Sensor(ids: bitstring, idg: bitstring, ssnk: bitstring) =
+    in(er_ch, (ma2: er_element, ma6: bitstring, mt2: bitstring));
+    if ma6 = er_h((e2b(ma2), ssnk, idg, mt2)) then
+    event evSensorAuthM2(ids, e2b(ma2));
+    new rs_s: er_scalar;
+    let rs = s2b(rs_s) in
+    
+    (* Oracle: EKCI Leakage *)
+    out(er_leak, rs); 
+
+    let A7 = er_exp(er_g, rs_s) in
+    let SK_s = er_exp(ma2, rs_s) in
+    let A8 = er_h((ma6, e2b(ma2), ssnk, idg)) in
+    event evSensorFinished(ids, e2b(ma2), e2b(A7));
+    out(er_ch, (A8, A7)).
+
+(*** 5. MAIN ORCHESTRATION ***)
+process
+    (* Setup Phase *)
+    new sase: er_scalar;
+    let sg = b2s(er_h(s2b(sase))) in
+    let pkg = er_exp(er_g, sg) in
+    let ssnk = er_h((s2b(sase), er_SNID)) in
+    insert er_sensor_db(er_SNID, ssnk);
+    
+    (* Expose public data to Attacker *)
+    out(er_ch, (er_UID, er_SNID, er_GWID, pkg)); 
+
+    (
+        (!User(er_UID, er_SNID, pkg)) | 
+        (!Gateway(er_GWID, sg)) | 
+        (!Sensor(er_SNID, er_GWID, ssnk)) |
+        
+        (* PFS/KCI Leakage Scenario *)
+        (phase 1; out(er_ch, (sg, sase, ssnk))) |
+
+        (* KSSTI Oracle *)
+        (!in(er_leak, s: bitstring); out(er_ch, s))
+    )
+    

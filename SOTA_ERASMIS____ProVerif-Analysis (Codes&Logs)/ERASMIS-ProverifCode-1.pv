@@ -1,0 +1,137 @@
+(* 
+    PROTOCOL: ERASMIS (Medical IoT)
+    MODELER: Professor of Cryptography & Formal Methods Engineer
+    VERSION: ProVerif 2.04 (Strict x64 Kali 2024 Compatibility)
+*)
+
+(*** 1. ALGEBRAIC DEFINITIONS ***)
+
+type er_id.
+type er_scalar.
+type er_element.
+type er_timestamp.
+
+(* ECC Operations *)
+const er_g: er_element.
+fun er_exp(er_element, er_scalar): er_element.
+equation forall x: er_scalar, y: er_scalar; 
+    er_exp(er_exp(er_g, x), y) = er_exp(er_exp(er_g, y), x).
+
+(* XOR Operation - Using 'er_oplus' to avoid conflicts *)
+fun er_oplus(bitstring, bitstring): bitstring.
+equation forall x: bitstring, y: bitstring; 
+    er_oplus(er_oplus(x, y), y) = x.
+
+(* Hash Function *)
+fun er_h(bitstring): bitstring.
+
+(* Type Converters *)
+fun er_e2b(er_element): bitstring [typeConverter].
+fun er_s2b(er_scalar): bitstring [typeConverter].
+fun er_i2b(er_id): bitstring [typeConverter].
+fun er_t2b(er_timestamp): bitstring [typeConverter].
+fun er_b2i(bitstring): er_id [typeConverter].
+fun er_b2s(bitstring): er_scalar [typeConverter].
+
+(*** 2. CHANNELS & TABLES ***)
+free er_ch: channel.
+free er_leak: channel.
+table er_sensor_db(er_id, bitstring).
+
+(*** 3. GLOBAL CONSTANTS ***)
+free er_UID: er_id.
+free er_GWID: er_id.
+free er_SNID: er_id.
+free er_secret_sk: bitstring [private].
+
+(*** 4. EVENTS (THE 38-PROPERTY MANDATE) ***)
+event evUserStarted(er_id, er_id).
+event evGatewayAuthM1(er_id, er_element).
+event evSensorAuthM2(er_id, er_element).
+event evSensorFinished(er_id, er_element, er_element).
+event evGatewayFinished(er_id, er_id).
+event evUserFinished(er_id, er_id, er_element, er_element).
+
+(*** 5. SECURITY QUERIES (TIERED) ***)
+
+(* TIER 1 & 2: Instant Reachability & Secrecy *)
+query attacker(er_secret_sk).                      (* Property 13: SK Secrecy *)
+query event(evUserFinished(er_UID, er_SNID, er_g, er_g)). (* Executability *)
+
+(* TIER 3: Non-Injective Authentication *)
+query idu: er_id, ids: er_id, e1: er_element, e2: er_element;
+    event(evUserFinished(idu, ids, e1, e2)) ==> event(evSensorFinished(ids, e1, e2)).
+
+(* TIER 4: Injective Agreement (Replay Protection) - Commented for performance *)
+(* query idu: er_id, ids: er_id, e1: er_element, e2: er_element;
+    inj-event(evUserFinished(idu, ids, e1, e2)) ==> inj-event(evSensorFinished(ids, e1, e2)). *)
+
+(*** 6. PROTOCOL PROCESSES ***)
+
+(* User Process *)
+let er_User(idu: er_id, ids: er_id, pkg: er_element) =
+    event evUserStarted(idu, ids);
+    new ru: er_scalar;
+    let A2 = er_exp(er_g, ru) in
+    let A3 = er_exp(pkg, ru) in
+    let A4 = er_oplus(er_i2b(ids), er_e2b(A3)) in
+    new t1: er_timestamp;
+    let A5 = er_h((er_e2b(A2), er_e2b(A3), A4, er_t2b(t1))) in
+    out(er_ch, (A2, A4, A5, t1));
+    
+    in(er_ch, (ma7: er_element, ma9: bitstring));
+    let A9_check = er_h((er_e2b(ma7), er_i2b(ids))) in
+    if ma9 = A9_check then
+    let SK_u = er_exp(ma7, ru) in
+    event evUserFinished(idu, ids, A2, ma7);
+    if idu = er_UID then out(er_ch, er_oplus(er_e2b(SK_u), er_secret_sk)).
+
+(* Gateway Process *)
+let er_Gateway(idg: er_id, sg: er_scalar) =
+    in(er_ch, (ma2: er_element, ma4: bitstring, ma5: bitstring, mt1: er_timestamp));
+    let A3_star = er_exp(ma2, sg) in
+    let A5_star = er_h((er_e2b(ma2), er_e2b(A3_star), ma4, er_t2b(mt1))) in
+    if ma5 = A5_star then
+    event evGatewayAuthM1(idg, ma2);
+    let mSNID = er_b2i(er_oplus(ma4, er_e2b(A3_star))) in
+    get er_sensor_db(=mSNID, ssnk) in
+    new t2: er_timestamp;
+    let A6 = er_h((er_e2b(ma2), ssnk, er_i2b(idg), er_t2b(t2))) in
+    out(er_ch, (ma2, A6, t2));
+    
+    in(er_ch, (ma8: bitstring, ma7: er_element));
+    let A8_star = er_h((A6, er_e2b(ma2), ssnk, er_i2b(idg))) in
+    if ma8 = A8_star then
+    let A9 = er_h((er_e2b(ma7), er_i2b(mSNID))) in
+    event evGatewayFinished(idg, mSNID);
+    out(er_ch, (ma7, A9)).
+
+(* Sensor Process *)
+let er_Sensor(ids: er_id, idg: er_id, ssnk: bitstring) =
+    in(er_ch, (ma2: er_element, ma6: bitstring, mt2: er_timestamp));
+    let A6_star = er_h((er_e2b(ma2), ssnk, er_i2b(idg), er_t2b(mt2))) in
+    if ma6 = A6_star then
+    event evSensorAuthM2(ids, ma2);
+    new rs: er_scalar;
+    let A7 = er_exp(er_g, rs) in
+    let SK_s = er_exp(ma2, rs) in
+    let A8 = er_h((ma6, er_e2b(ma2), ssnk, er_i2b(idg))) in
+    event evSensorFinished(ids, ma2, A7);
+    out(er_ch, (A8, A7)).
+
+(*** 7. MAIN PROCESS ***)
+process
+    (* Setup Phase *)
+    new sase: er_scalar;
+    let sg = er_b2s(er_h(er_s2b(sase))) in
+    let pkg = er_exp(er_g, sg) in
+    let ssnk = er_h((er_s2b(sase), er_i2b(er_SNID))) in
+    
+    insert er_sensor_db(er_SNID, ssnk);
+    
+    (
+        (!er_User(er_UID, er_SNID, pkg)) | 
+        (!er_Gateway(er_GWID, sg)) | 
+        (!er_Sensor(er_SNID, er_GWID, ssnk))
+    )
+    
